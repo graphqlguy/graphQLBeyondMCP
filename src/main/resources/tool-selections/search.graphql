@@ -1,0 +1,15 @@
+# Curated override, and the one the generator cannot write for you. `search`
+# returns the union SearchResult = Movie | Person | TvShow, and a union field is
+# invalid without a selection, so the generated document fails validation at the
+# server with SubselectionRequired. Choosing fields across union members needs
+# inline fragments and a judgement about which members matter, which is a decision
+# a generator should decline to make. __typename is selected so the agent can tell
+# the branches apart in the result.
+query Tool_search($query: String!) {
+  search(query: $query) {
+    __typename
+    ... on Movie  { id title releaseYear rating }
+    ... on TvShow { id title startYear rating }
+    ... on Person { id name }
+  }
+}
