@@ -1,0 +1,7 @@
+# Curated override: the generated default selects only MoviePage's scalar
+# fields, which are pagination metadata; the movies themselves live under
+# "content", an object list the conservative default excludes. Page and
+# connection wrappers always need curation, and the MovieCard fragment is
+# the reusable contract for what each movie should carry.
+query Tool_movies($filter: MovieFilter, $page: Int, $size: Int, $sort: MovieSort) { movies(filter: $filter, page: $page, size: $size, sort: $sort) { content { ...MovieCard } totalElements } }
+fragment MovieCard on Movie { id title releaseYear rating }
