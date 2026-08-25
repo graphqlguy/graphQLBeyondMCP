@@ -101,3 +101,11 @@ and formats second (entity only), and the page-wrapper lesson lives in
 tool-selections/movies.graphql: generated selections stop at MoviePage's
 scalars, so the movies under content require curation, expressed with the
 MovieCard fragment the Java record mirrors.
+
+## Class 9: streaming and incremental delivery
+
+```bash
+# graphql-java's experimental @defer at the engine level, timestamped:
+# the initial payload lands in milliseconds, the deferred part follows
+java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar defer-demo
+```
