@@ -61,3 +61,17 @@ plus a ToolExecutor delegating to the same GraphQlToolCallback, so login,
 approval gate, and budgets carry over unchanged. The framework owns the loop
 here, which is why the model-call ceiling moves into
 `maxToolCallingRoundTrips` while the tool-call ceiling stays in the callback.
+
+## Class 6: LangGraph4j
+
+```bash
+# The loop as an explicit state machine: interruptBefore("tools") checkpoints
+# and pauses before every tool step; reads resume silently, writes wait for
+# the human, and the budget is a value the routing edge reads
+java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar graph-agent add the movie with id 2 to my To watch this weekend watchlist
+```
+
+LangGraph4j is pinned to 1.8.24 deliberately (the Maven release tag currently
+points at a 1.9 beta). Checkpointing serializes state, and LangChain4j's
+message classes are not java.io.Serializable, so the graph uses the
+integration module's LC4jJacksonStateSerializer.
