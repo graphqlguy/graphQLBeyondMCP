@@ -75,3 +75,14 @@ LangGraph4j is pinned to 1.8.24 deliberately (the Maven release tag currently
 points at a 1.9 beta). Checkpointing serializes state, and LangChain4j's
 message classes are not java.io.Serializable, so the graph uses the
 integration module's LC4jJacksonStateSerializer.
+
+## Class 7: Spring AI
+
+```bash
+# The ChatClient with the advisor-owned loop; the Class 2 callbacks plug in
+# directly, because ToolCallback IS Spring AI's contract
+printf "y\n" | java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar spring-agent add the movie with id 4 to my To watch this weekend watchlist
+
+# The same client, streaming the answer token by token while tools run
+java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar spring-stream which movies from 1994 are in the catalog
+```
