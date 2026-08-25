@@ -48,3 +48,16 @@ overrides under `src/main/resources/tool-selections/` replace generated
 documents where a human decided differently; the two overrides present work
 around a real DateTime serialization defect in the service that the agent's
 first run discovered.
+
+## Class 5: LangChain4j
+
+```bash
+# The same catalog, safety layer, and task, driven by LangChain4j's AiServices
+java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar lc4j-agent add the movie with id 3 to my To watch this weekend watchlist
+```
+
+The bridge (`langchain/`) turns each generated tool into a ToolSpecification
+plus a ToolExecutor delegating to the same GraphQlToolCallback, so login,
+approval gate, and budgets carry over unchanged. The framework owns the loop
+here, which is why the model-call ceiling moves into
+`maxToolCallingRoundTrips` while the tool-call ceiling stays in the callback.
