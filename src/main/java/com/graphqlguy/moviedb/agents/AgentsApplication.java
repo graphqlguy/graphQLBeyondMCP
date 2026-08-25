@@ -36,6 +36,8 @@ import java.util.Map;
  *   call <tool> <json>     Class 2: execute one tool directly, no model involved
  *   agent <task>           Class 4: the full loop with login, approval gate, and budget
  *   lc4j-agent <task>      Class 5: the same catalog and safety layer, driven by LangChain4j
+ *   graph-agent <task>     Class 6: the loop as an explicit LangGraph4j state machine,
+ *                          with the approval gate as a checkpointed interrupt
  *   probe-depth            Class 4: show the server's own depth cap refusing a
  *                          pathological query, the backstop below every agent control
  * }</pre>
@@ -57,6 +59,7 @@ public class AgentsApplication {
                           call <tool> <json>   execute one generated tool against the endpoint
                           agent <task>         run the agent loop (login, approval gate, budget)
                           lc4j-agent <task>    the same task through LangChain4j's AiServices
+                          graph-agent <task>   the loop as a LangGraph4j state machine
                           probe-depth          demonstrate the server's depth cap""");
                 return;
             }
@@ -172,6 +175,92 @@ public class AgentsApplication {
                     System.out.println();
                     System.out.println("answer: " + answer);
                     System.out.println("budget: " + budget.summary());
+                }
+                case "graph-agent" -> {
+                    String task = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                    if (task.isBlank()) {
+                        System.out.println("graph-agent needs a task");
+                        return;
+                    }
+                    String role = env.getProperty("agents.role", "concierge");
+                    String username = env.getProperty("agents.auth.username", "");
+                    AuthSession auth = username.isBlank()
+                            ? AuthSession.anonymous()
+                            : AuthSession.login(endpoint, username,
+                                    env.getProperty("agents.auth.password", ""));
+                    RunBudget budget = new RunBudget(
+                            env.getProperty("agents.budget.max-model-calls", Integer.class, 8),
+                            env.getProperty("agents.budget.max-tool-calls", Integer.class, 6));
+                    List<OperationTool> toolList = generator.generate(schema, allowList, role);
+                    // The gate is deliberately absent from the callbacks here: in this
+                    // class the gate is the graph's interrupt, one level up.
+                    Map<String, GraphQlToolCallback> callbacks = new java.util.LinkedHashMap<>();
+                    Map<String, OperationTool> byName = new java.util.LinkedHashMap<>();
+                    for (OperationTool t2 : toolList) {
+                        callbacks.put(t2.name(), new GraphQlToolCallback(t2, endpoint, auth, null, budget));
+                        byName.put(t2.name(), t2);
+                    }
+                    java.util.Set<String> mutations = toolList.stream()
+                            .filter(OperationTool::mutation)
+                            .map(OperationTool::name)
+                            .collect(java.util.stream.Collectors.toSet());
+                    var lcModel = dev.langchain4j.model.ollama.OllamaChatModel.builder()
+                            .baseUrl(env.getProperty("spring.ai.ollama.base-url", "http://localhost:11434"))
+                            .modelName(env.getProperty("agents.model", "qwen3:8b"))
+                            .build();
+                    var concierge = new com.graphqlguy.moviedb.agents.langgraph.LangGraphConcierge(
+                            lcModel, toolList, callbacks, mutations,
+                            env.getProperty("agents.budget.max-model-calls", Integer.class, 8));
+                    var graph = concierge.compile();
+                    var config = org.bsc.langgraph4j.RunnableConfig.builder()
+                            .threadId("class-6").build();
+                    List<dev.langchain4j.data.message.ChatMessage> initial = List.of(
+                            dev.langchain4j.data.message.SystemMessage.from(
+                                    """
+                                    You are a concierge for the Movie Database. Use the tools to answer
+                                    and to act; never invent ids, and never claim an action succeeded
+                                    without a tool result proving it. Ids are numeric strings like "2";
+                                    a name is never an id. Before any write, you MUST first call the
+                                    read tools to obtain every id the write needs."""),
+                            dev.langchain4j.data.message.UserMessage.from(task));
+                    System.out.println("framework : LangGraph4j (StateGraph, interruptBefore tools)");
+                    System.out.println("role      : " + role + " (" + toolList.size() + " tools)");
+                    System.out.println("task      : " + task);
+                    System.out.println();
+                    ApprovalGate gate = new ApprovalGate();
+                    var stream = graph.stream(
+                            Map.<String, Object>of("messages", initial), config);
+                    answerLoop:
+                    while (true) {
+                        String lastNode = null;
+                        com.graphqlguy.moviedb.agents.langgraph.ConciergeState lastState = null;
+                        for (var output : stream) {
+                            lastNode = output.node();
+                            lastState = output.state();
+                            System.out.println("node: " + output.node()
+                                    + " (round " + output.state().rounds() + ")");
+                        }
+                        if (org.bsc.langgraph4j.StateGraph.END.equals(lastNode) || lastState == null) {
+                            System.out.println();
+                            System.out.println("answer: " + (lastState == null ? "(none)"
+                                    : lastState.lastAiMessage()
+                                            .map(dev.langchain4j.data.message.AiMessage::text)
+                                            .orElse("(no final message)")));
+                            System.out.println("budget: " + budget.summary());
+                            break;
+                        }
+                        // The graph checkpointed and paused before the tools node.
+                        for (var request : concierge.pendingMutations(lastState)) {
+                            if (!gate.approve(request.name(),
+                                    byName.get(request.name()).operationDocument(),
+                                    request.arguments())) {
+                                System.out.println("Run abandoned at the interrupt; the"
+                                        + " checkpoint keeps the paused state for inspection.");
+                                break answerLoop;
+                            }
+                        }
+                        stream = graph.stream(org.bsc.langgraph4j.GraphInput.resume(), config);
+                    }
                 }
                 case "probe-depth" -> {
                     // Movie -> cast -> movie -> cast ... : the schema's real cycle,

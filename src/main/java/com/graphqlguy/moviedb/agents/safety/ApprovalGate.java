@@ -20,10 +20,15 @@ public class ApprovalGate {
     private final Scanner input = new Scanner(System.in);
 
     public boolean approve(OperationTool tool, String jsonArguments) {
+        return approve(tool.name(), tool.operationDocument(), jsonArguments);
+    }
+
+    /** The same contract for callers that hold the pieces instead of the record. */
+    public boolean approve(String toolName, String operationDocument, String jsonArguments) {
         System.out.println();
         System.out.println("APPROVAL REQUIRED: the agent wants to run a write.");
-        System.out.println("  tool      : " + tool.name());
-        System.out.println("  operation : " + tool.operationDocument());
+        System.out.println("  tool      : " + toolName);
+        System.out.println("  operation : " + operationDocument);
         System.out.println("  arguments : " + jsonArguments);
         System.out.print("Execute this mutation? [y/N] ");
         String answer = input.hasNextLine() ? input.nextLine().strip() : "";
