@@ -1,6 +1,8 @@
 package com.graphqlguy.moviedb.agents;
 
 import com.graphqlguy.moviedb.agents.agent.AgentRunner;
+import com.graphqlguy.moviedb.agents.langchain.LangChainToolBridge;
+import com.graphqlguy.moviedb.agents.langchain.MovieConcierge;
 import com.graphqlguy.moviedb.agents.auth.AuthSession;
 import com.graphqlguy.moviedb.agents.catalog.GraphQlToolCallback;
 import com.graphqlguy.moviedb.agents.safety.ApprovalGate;
@@ -33,6 +35,7 @@ import java.util.Map;
  *   catalog [role]         Class 2: generate and print the tool catalog
  *   call <tool> <json>     Class 2: execute one tool directly, no model involved
  *   agent <task>           Class 4: the full loop with login, approval gate, and budget
+ *   lc4j-agent <task>      Class 5: the same catalog and safety layer, driven by LangChain4j
  *   probe-depth            Class 4: show the server's own depth cap refusing a
  *                          pathological query, the backstop below every agent control
  * }</pre>
@@ -53,6 +56,7 @@ public class AgentsApplication {
                           catalog [role]       generate and print the tool catalog
                           call <tool> <json>   execute one generated tool against the endpoint
                           agent <task>         run the agent loop (login, approval gate, budget)
+                          lc4j-agent <task>    the same task through LangChain4j's AiServices
                           probe-depth          demonstrate the server's depth cap""");
                 return;
             }
@@ -123,6 +127,51 @@ public class AgentsApplication {
                     System.out.println();
                     new AgentRunner(chatModel, env.getProperty("agents.model", "qwen3:8b"))
                             .run(task, tools, budget);
+                }
+                case "lc4j-agent" -> {
+                    String task = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                    if (task.isBlank()) {
+                        System.out.println("lc4j-agent needs a task");
+                        return;
+                    }
+                    String role = env.getProperty("agents.role", "concierge");
+                    String username = env.getProperty("agents.auth.username", "");
+                    AuthSession auth = username.isBlank()
+                            ? AuthSession.anonymous()
+                            : AuthSession.login(endpoint, username,
+                                    env.getProperty("agents.auth.password", ""));
+                    RunBudget budget = new RunBudget(
+                            env.getProperty("agents.budget.max-model-calls", Integer.class, 8),
+                            env.getProperty("agents.budget.max-tool-calls", Integer.class, 6));
+                    ApprovalGate gate = new ApprovalGate();
+                    var bridged = new LangChainToolBridge().bridge(
+                            generator.generate(schema, allowList, role),
+                            t2 -> new GraphQlToolCallback(t2, endpoint, auth, gate, budget));
+                    var chatModel = dev.langchain4j.model.ollama.OllamaChatModel.builder()
+                            .baseUrl(env.getProperty("spring.ai.ollama.base-url", "http://localhost:11434"))
+                            .modelName(env.getProperty("agents.model", "qwen3:8b"))
+                            .build();
+                    MovieConcierge concierge = dev.langchain4j.service.AiServices
+                            .builder(MovieConcierge.class)
+                            .chatModel(chatModel)
+                            .tools(bridged)
+                            // The framework owns this loop, so the model-call ceiling
+                            // must live in the framework; the tool-call ceiling stays
+                            // in the callback and needs nothing from anyone.
+                            .maxToolCallingRoundTrips(
+                                    env.getProperty("agents.budget.max-model-calls", Integer.class, 8))
+                            .chatMemory(dev.langchain4j.memory.chat.MessageWindowChatMemory
+                                    .withMaxMessages(20))
+                            .build();
+                    System.out.println("framework : LangChain4j (AiServices)");
+                    System.out.println("role      : " + role + " (" + bridged.size() + " tools)");
+                    System.out.println("user      : " + (username.isBlank() ? "(anonymous)" : username));
+                    System.out.println("task      : " + task);
+                    System.out.println();
+                    String answer = concierge.chat(task);
+                    System.out.println();
+                    System.out.println("answer: " + answer);
+                    System.out.println("budget: " + budget.summary());
                 }
                 case "probe-depth" -> {
                     // Movie -> cast -> movie -> cast ... : the schema's real cycle,
