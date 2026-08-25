@@ -1,0 +1,167 @@
+[ {
+  "name" : "movie",
+  "description" : "Returns a movie by its database identifier. Use this when you have an exact\nID, typically from a prior `search` or `movies` call. Returns null if no\nmovie exists with that ID, so check for null before assuming success.",
+  "inputSchema" : {
+    "type" : "object",
+    "properties" : {
+      "id" : {
+        "type" : "string"
+      }
+    },
+    "required" : [ "id" ],
+    "additionalProperties" : false
+  },
+  "operation" : "query Tool_movie($id: ID!) { movie(id: $id) { id title releaseYear genre rating runtime plot posterUrl tmdbId reviewCount } }",
+  "roles" : [ ],
+  "tokens" : 75
+}, {
+  "name" : "movies",
+  "description" : "Returns a page of movies, optionally filtered. Pass a `MovieFilter` input to\nconstrain by release year window, genre, or minimum rating. Use `page` and\n`size` for pagination; page numbering starts at 0. If `filter` is null, the\nwhole catalog is paged in the default sort order; pass `sort` to control\nordering. For free-text search across titles and names, use `search` instead.",
+  "inputSchema" : {
+    "type" : "object",
+    "properties" : {
+      "filter" : {
+        "type" : "object",
+        "properties" : {
+          "genre" : {
+            "type" : "string",
+            "enum" : [ "ACTION", "COMEDY", "CRIME", "DRAMA", "FANTASY", "HORROR", "MYSTERY", "ROMANCE", "SCIFI", "THRILLER", "WAR", "WESTERN" ]
+          },
+          "minRating" : {
+            "type" : "number"
+          },
+          "maxRating" : {
+            "type" : "number"
+          },
+          "minYear" : {
+            "type" : "integer"
+          },
+          "maxYear" : {
+            "type" : "integer"
+          },
+          "titleContains" : {
+            "type" : "string"
+          }
+        },
+        "additionalProperties" : false
+      },
+      "page" : {
+        "type" : "integer"
+      },
+      "size" : {
+        "type" : "integer"
+      },
+      "sort" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string",
+            "enum" : [ "TITLE", "RELEASE_YEAR", "RATING", "RUNTIME" ]
+          },
+          "order" : {
+            "type" : "string",
+            "enum" : [ "ASC", "DESC" ]
+          }
+        },
+        "additionalProperties" : false
+      }
+    },
+    "additionalProperties" : false
+  },
+  "operation" : "query Tool_movies($filter: MovieFilter, $page: Int, $size: Int, $sort: MovieSort) { movies(filter: $filter, page: $page, size: $size, sort: $sort) { content { ...MovieCard } totalElements } } fragment MovieCard on Movie { id title releaseYear rating }",
+  "roles" : [ ],
+  "tokens" : 271
+}, {
+  "name" : "person",
+  "description" : "Returns a person by their database identifier, with the roles that connect\nthem to movies and TV shows. Use this when you have an exact ID, typically\nfrom a prior `search` call. Returns null if no person exists with that ID.\nTo find a person by name, use `search` instead.",
+  "inputSchema" : {
+    "type" : "object",
+    "properties" : {
+      "id" : {
+        "type" : "string"
+      }
+    },
+    "required" : [ "id" ],
+    "additionalProperties" : false
+  },
+  "operation" : "query Tool_person($id: ID!) { person(id: $id) { id name birthYear biography photoUrl countryCode } }",
+  "roles" : [ ],
+  "tokens" : 88
+}, {
+  "name" : "search",
+  "description" : "Case-insensitive free-text search across movies, TV shows and people. Use\nthis when the user names something, or part of a name, instead of describing\nit with structured criteria. Returns a union, so check `__typename` on each\nresult before reading its fields. For structured filtering of movies alone,\nuse `movies`; for exact-ID lookups, use `movie`, `person` or `tvShow`.",
+  "inputSchema" : {
+    "type" : "object",
+    "properties" : {
+      "query" : {
+        "type" : "string"
+      }
+    },
+    "required" : [ "query" ],
+    "additionalProperties" : false
+  },
+  "operation" : "query Tool_search($query: String!) {   search(query: $query) {     __typename     ... on Movie  { ...MovieCard }     ... on TvShow { id title startYear rating }     ... on Person { id name }   } } fragment MovieCard on Movie { id title releaseYear rating }",
+  "roles" : [ ],
+  "tokens" : 111
+}, {
+  "name" : "tvShow",
+  "description" : "Returns a TV show by its database identifier, including its seasons and\nepisode counts. Use this when you have an exact ID, typically from a prior\n`search` call. Returns null if no TV show exists with that ID. To page\nthrough every show, use `tvShows`; to find one by title, use `search`.",
+  "inputSchema" : {
+    "type" : "object",
+    "properties" : {
+      "id" : {
+        "type" : "string"
+      }
+    },
+    "required" : [ "id" ],
+    "additionalProperties" : false
+  },
+  "operation" : "query Tool_tvShow($id: ID!) { tvShow(id: $id) { id title genre rating posterUrl startYear endYear seasons plot } }",
+  "roles" : [ ],
+  "tokens" : 95
+}, {
+  "name" : "myWatchLists",
+  "description" : "The signed-in user's own watch lists, newest first.",
+  "inputSchema" : {
+    "type" : "object",
+    "properties" : { },
+    "additionalProperties" : false
+  },
+  "operation" : "query Tool_myWatchLists { myWatchLists { id name description isPublic createdAt itemCount } }",
+  "roles" : [ "concierge" ],
+  "tokens" : 28
+}, {
+  "name" : "addWatchListItem",
+  "description" : "Add a movie or TV show to one of your lists. Adding a title that is already there returns the existing entry, so retrying is safe.",
+  "inputSchema" : {
+    "type" : "object",
+    "properties" : {
+      "input" : {
+        "type" : "object",
+        "properties" : {
+          "watchListId" : {
+            "type" : "string"
+          },
+          "titleId" : {
+            "type" : "string"
+          },
+          "titleType" : {
+            "type" : "string",
+            "enum" : [ "MOVIE", "TV_SHOW" ],
+            "description" : "Whether a watch-list entry points at a movie or a TV show."
+          },
+          "userNotes" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "watchListId", "titleId", "titleType" ],
+        "additionalProperties" : false
+      }
+    },
+    "required" : [ "input" ],
+    "additionalProperties" : false
+  },
+  "operation" : "mutation Tool_addWatchListItem($input: AddWatchListItemInput!) {   addWatchListItem(input: $input) {     success     item { id titleType watched userNotes }     error { code message }   } }",
+  "roles" : [ "concierge" ],
+  "tokens" : 136
+} ]

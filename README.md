@@ -117,3 +117,17 @@ java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar defer-demo
 # tagged by tenant and model (illustrative list rates; configure your own)
 printf "y\n" | java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar agent add the movie with id 3 to my Sci-fi favorites watchlist
 ```
+
+## Class 11: testing
+
+```bash
+mvn test
+```
+
+Eight tests in three layers: the JSON Schema translation rules pinned as
+executable facts, the catalog compared against a committed golden copy (the
+drift gate: schema changes fail the build until the catalog is deliberately
+regenerated in the same review), and the callback's safety behaviors asserted
+against an embedded HTTP stub: a denied write never touches the wire, the
+budget throws an exception past its ceiling, and flattened single-input
+arguments arrive at the server wrapped.
