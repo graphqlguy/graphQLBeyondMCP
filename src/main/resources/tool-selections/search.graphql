@@ -1,15 +1,21 @@
-# Curated override, and the one the generator cannot write for you. `search`
-# returns the union SearchResult = Movie | Person | TvShow, and a union field is
-# invalid without a selection, so the generated document fails validation at the
-# server with SubselectionRequired. Choosing fields across union members needs
+# Curated override, refined here around a named fragment. Two things are going on.
+#
+# First, the union: `search` returns SearchResult = Movie | Person | TvShow, and a
+# union field is invalid without a selection, so the generated document fails at
+# the server with SubselectionRequired. Choosing fields across union members needs
 # inline fragments and a judgement about which members matter, which is a decision
-# a generator should decline to make. __typename is selected so the agent can tell
-# the branches apart in the result.
+# a generator should decline to make.
+#
+# Second, the shape: MovieCard is the contract for what a "movie, briefly" means in
+# this application, and Class 8's Java record mirrors it field for field. One shape,
+# three dialects: fragment (GraphQL), record (Java), JSON schema (the model's
+# format instructions).
 query Tool_search($query: String!) {
   search(query: $query) {
     __typename
-    ... on Movie  { id title releaseYear rating }
+    ... on Movie  { ...MovieCard }
     ... on TvShow { id title startYear rating }
     ... on Person { id name }
   }
 }
+fragment MovieCard on Movie { id title releaseYear rating }

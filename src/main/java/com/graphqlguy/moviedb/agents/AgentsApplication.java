@@ -41,6 +41,8 @@ import java.util.Map;
  *   spring-agent <task>    Class 7: the ChatClient with the advisor-owned loop; the
  *                          callbacks plug in with no bridge at all
  *   spring-stream <ask>    Class 7: the same client, streaming the answer token by token
+ *   recommend <ask>        Class 8: tools plus typed output; the answer arrives as
+ *                          List<MovieRecommendation>, never as free text to parse
  *   probe-depth            Class 4: show the server's own depth cap refusing a
  *                          pathological query, the backstop below every agent control
  * }</pre>
@@ -65,6 +67,7 @@ public class AgentsApplication {
                           graph-agent <task>   the loop as a LangGraph4j state machine
                           spring-agent <task>  the ChatClient with the advisor-owned loop
                           spring-stream <ask>  the same client, streaming the answer
+                          recommend <ask>      tools plus typed output (List<MovieRecommendation>)
                           probe-depth          demonstrate the server's depth cap""");
                 return;
             }
@@ -320,6 +323,65 @@ public class AgentsApplication {
                                 + " (provider-reported, final call)");
                     }
                     System.out.println("budget: " + budget.summary());
+                }
+                case "recommend" -> {
+                    String ask = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                    ChatModel model8 = chatModels.getIfAvailable();
+                    if (ask.isBlank() || model8 == null) {
+                        System.out.println(ask.isBlank() ? "recommend needs a request"
+                                : "No chat model available; is Ollama running?");
+                        return;
+                    }
+                    RunBudget budget = new RunBudget(8, 6);
+                    List<org.springframework.ai.tool.ToolCallback> callbacks =
+                            generator.generate(schema, allowList, null).stream()
+                                    .filter(t2 -> !t2.mutation())
+                                    .map(t2 -> (org.springframework.ai.tool.ToolCallback)
+                                            new GraphQlToolCallback(t2, endpoint,
+                                                    AuthSession.anonymous(), null, budget))
+                                    .toList();
+                    var client8 = org.springframework.ai.chat.client.ChatClient.create(model8);
+                    System.out.println("task    : " + ask);
+                    System.out.println();
+                    // Step one: ACT. Tools only, no output format in sight, so nothing
+                    // competes with grounding. The findings come back as plain text.
+                    String findings = client8.prompt()
+                            .system("You research movies in the Movie Database. Use the tools"
+                                    + " to find real catalog data answering the request; never"
+                                    + " invent movies. Report the matching movies with their"
+                                    + " exact ids, titles, years, and ratings from tool results.")
+                            .user(ask)
+                            .toolCallbacks(callbacks)
+                            .options(org.springframework.ai.ollama.api.OllamaChatOptions.builder()
+                                    .model(env.getProperty("agents.model", "qwen3:8b")))
+                            .call()
+                            .content();
+                    System.out.println("findings (grounded, text): "
+                            + findings.replace("\n", " ").strip());
+                    System.out.println();
+                    // Step two: FORMAT. Entity only, no tools, so nothing competes with
+                    // the shape. The model restructures known-good facts.
+                    List<com.graphqlguy.moviedb.agents.structured.MovieRecommendation> answer =
+                            client8.prompt()
+                                    .system("Format the given findings as recommendations."
+                                            + " Use only movies present in the findings, with"
+                                            + " their exact data; add a one-sentence reason each."
+                                            + " If no usable movies appear in the findings, return"
+                                            + " an empty list; an empty list is a correct answer.")
+                                    .user("Request: " + ask + "\nFindings: " + findings)
+                                    .options(org.springframework.ai.ollama.api.OllamaChatOptions.builder()
+                                            .model(env.getProperty("agents.model", "qwen3:8b")))
+                                    .call()
+                                    .entity(new org.springframework.core.ParameterizedTypeReference<
+                                            List<com.graphqlguy.moviedb.agents.structured.MovieRecommendation>>() {});
+                    for (var rec : answer) {
+                        System.out.printf("- %s (%d, rated %.1f): %s%n",
+                                rec.title(), rec.releaseYear(), rec.rating(), rec.reason());
+                    }
+                    System.out.println();
+                    System.out.println("type   : List<MovieRecommendation>, " + answer.size()
+                            + " typed entries; every field is a Java value, never text to parse");
+                    System.out.println("budget : " + budget.summary());
                 }
                 case "probe-depth" -> {
                     // Movie -> cast -> movie -> cast ... : the schema's real cycle,
