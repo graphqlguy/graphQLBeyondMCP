@@ -17,6 +17,9 @@
 	<properties>
 		<java.version>21</java.version>
 		<langchain4j.version>1.19.0</langchain4j.version>
+		<!-- Pinned explicitly: the Maven release tag currently points at a 1.9.0 beta,
+		     and the course pins stable versions only. -->
+		<langgraph4j.version>1.8.24</langgraph4j.version>
 	</properties>
 
 	<dependencyManagement>
@@ -68,6 +71,17 @@
 			<groupId>dev.langchain4j</groupId>
 			<artifactId>langchain4j-ollama</artifactId>
 			<version>${langchain4j.version}</version>
+		</dependency>
+		<!-- LangGraph4j: the agent's control flow as an explicit, typed state machine -->
+		<dependency>
+			<groupId>org.bsc.langgraph4j</groupId>
+			<artifactId>langgraph4j-core</artifactId>
+			<version>${langgraph4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.bsc.langgraph4j</groupId>
+			<artifactId>langgraph4j-langchain4j</artifactId>
+			<version>${langgraph4j.version}</version>
 		</dependency>
 		<!-- Schema parsing and the introspection walk -->
 		<dependency>
