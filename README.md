@@ -86,3 +86,18 @@ printf "y\n" | java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar spring-agent a
 # The same client, streaming the answer token by token while tools run
 java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar spring-stream which movies from 1994 are in the catalog
 ```
+
+## Class 8: structured output
+
+```bash
+# Act with tools, then format as a typed entity: List<MovieRecommendation>
+java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar recommend two great drama movies from the nineties
+```
+
+The one-step version (tools and entity on the same call) produced perfectly
+typed hallucinations: format pressure beat grounding and the model answered
+from memory in flawless JSON. The command therefore acts first (tools only)
+and formats second (entity only), and the page-wrapper lesson lives in
+tool-selections/movies.graphql: generated selections stop at MoviePage's
+scalars, so the movies under content require curation, expressed with the
+MovieCard fragment the Java record mirrors.
