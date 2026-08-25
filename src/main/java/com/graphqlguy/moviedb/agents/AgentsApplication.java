@@ -38,6 +38,9 @@ import java.util.Map;
  *   lc4j-agent <task>      Class 5: the same catalog and safety layer, driven by LangChain4j
  *   graph-agent <task>     Class 6: the loop as an explicit LangGraph4j state machine,
  *                          with the approval gate as a checkpointed interrupt
+ *   spring-agent <task>    Class 7: the ChatClient with the advisor-owned loop; the
+ *                          callbacks plug in with no bridge at all
+ *   spring-stream <ask>    Class 7: the same client, streaming the answer token by token
  *   probe-depth            Class 4: show the server's own depth cap refusing a
  *                          pathological query, the backstop below every agent control
  * }</pre>
@@ -60,6 +63,8 @@ public class AgentsApplication {
                           agent <task>         run the agent loop (login, approval gate, budget)
                           lc4j-agent <task>    the same task through LangChain4j's AiServices
                           graph-agent <task>   the loop as a LangGraph4j state machine
+                          spring-agent <task>  the ChatClient with the advisor-owned loop
+                          spring-stream <ask>  the same client, streaming the answer
                           probe-depth          demonstrate the server's depth cap""");
                 return;
             }
@@ -261,6 +266,60 @@ public class AgentsApplication {
                         }
                         stream = graph.stream(org.bsc.langgraph4j.GraphInput.resume(), config);
                     }
+                }
+                case "spring-agent", "spring-stream" -> {
+                    String task = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                    ChatModel springModel = chatModels.getIfAvailable();
+                    if (task.isBlank() || springModel == null) {
+                        System.out.println(task.isBlank() ? "a task is needed"
+                                : "No chat model available; is Ollama running?");
+                        return;
+                    }
+                    String role = env.getProperty("agents.role", "concierge");
+                    String username = env.getProperty("agents.auth.username", "");
+                    AuthSession auth = username.isBlank()
+                            ? AuthSession.anonymous()
+                            : AuthSession.login(endpoint, username,
+                                    env.getProperty("agents.auth.password", ""));
+                    RunBudget budget = new RunBudget(
+                            env.getProperty("agents.budget.max-model-calls", Integer.class, 8),
+                            env.getProperty("agents.budget.max-tool-calls", Integer.class, 6));
+                    ApprovalGate gate = new ApprovalGate();
+                    List<org.springframework.ai.tool.ToolCallback> callbacks =
+                            generator.generate(schema, allowList, role).stream()
+                                    .map(t2 -> (org.springframework.ai.tool.ToolCallback)
+                                            new GraphQlToolCallback(t2, endpoint, auth, gate, budget))
+                                    .toList();
+                    var client = org.springframework.ai.chat.client.ChatClient.create(springModel);
+                    var spec = client.prompt()
+                            .system("""
+                                    You are a concierge for the Movie Database. Use the tools to answer
+                                    and to act; never invent ids, and never claim an action succeeded
+                                    without a tool result proving it. Ids are numeric strings like "2";
+                                    a name is never an id. Before any write, first call the read tools
+                                    to obtain every id the write needs.""")
+                            .user(task)
+                            .toolCallbacks(callbacks)
+                            .options(org.springframework.ai.ollama.api.OllamaChatOptions.builder()
+                                    .model(env.getProperty("agents.model", "qwen3:8b")));
+                    System.out.println("framework : Spring AI (ChatClient, advisor-owned loop)");
+                    System.out.println("role      : " + role + " (" + callbacks.size() + " tools)");
+                    System.out.println("task      : " + task);
+                    System.out.println();
+                    if (args[0].equals("spring-stream")) {
+                        spec.stream().content()
+                                .doOnNext(System.out::print)
+                                .blockLast();
+                        System.out.println();
+                    } else {
+                        var response = spec.call().chatResponse();
+                        System.out.println("answer: " + response.getResult().getOutput().getText());
+                        var usage = response.getMetadata().getUsage();
+                        System.out.println("usage : " + usage.getPromptTokens() + " prompt + "
+                                + usage.getCompletionTokens() + " completion tokens"
+                                + " (provider-reported, final call)");
+                    }
+                    System.out.println("budget: " + budget.summary());
                 }
                 case "probe-depth" -> {
                     // Movie -> cast -> movie -> cast ... : the schema's real cycle,
