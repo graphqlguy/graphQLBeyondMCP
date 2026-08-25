@@ -139,8 +139,18 @@ public class AgentsApplication {
                     System.out.println("user    : " + (username.isBlank() ? "(anonymous)" : username));
                     System.out.println("task    : " + task);
                     System.out.println();
+                    var registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+                    var costMeter = new com.graphqlguy.moviedb.agents.safety.CostMeter(
+                            registry, username.isBlank() ? "anonymous" : username,
+                            env.getProperty("agents.model", "qwen3:8b"),
+                            env.getProperty("agents.pricing.input-per-mtok", Double.class, 1.00),
+                            env.getProperty("agents.pricing.output-per-mtok", Double.class, 5.00));
                     new AgentRunner(chatModel, env.getProperty("agents.model", "qwen3:8b"))
-                            .run(task, tools, budget);
+                            .run(task, tools, budget, costMeter);
+                    System.out.println("meters: " + registry.getMeters().stream()
+                            .map(m -> m.getId().getName() + m.getId().getTags() + "="
+                                    + ((io.micrometer.core.instrument.Counter) m).count())
+                            .sorted().toList());
                 }
                 case "lc4j-agent" -> {
                     String task = String.join(" ", Arrays.copyOfRange(args, 1, args.length));

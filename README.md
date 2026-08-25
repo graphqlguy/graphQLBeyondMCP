@@ -109,3 +109,11 @@ MovieCard fragment the Java record mirrors.
 # the initial payload lands in milliseconds, the deferred part follows
 java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar defer-demo
 ```
+
+## Class 10: cost accounting
+
+```bash
+# The agent command now ends with a priced receipt and Micrometer counters
+# tagged by tenant and model (illustrative list rates; configure your own)
+printf "y\n" | java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar agent add the movie with id 3 to my Sci-fi favorites watchlist
+```

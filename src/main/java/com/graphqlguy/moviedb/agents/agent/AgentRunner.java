@@ -1,5 +1,6 @@
 package com.graphqlguy.moviedb.agents.agent;
 
+import com.graphqlguy.moviedb.agents.safety.CostMeter;
 import com.graphqlguy.moviedb.agents.safety.RunBudget;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -43,6 +44,10 @@ public class AgentRunner {
     }
 
     public void run(String task, List<ToolCallback> tools, RunBudget budget) {
+        run(task, tools, budget, null);
+    }
+
+    public void run(String task, List<ToolCallback> tools, RunBudget budget, CostMeter costMeter) {
         ToolCallingChatOptions options = OllamaChatOptions.builder()
                 .model(modelName)
                 .toolCallbacks(tools)
@@ -54,6 +59,12 @@ public class AgentRunner {
         while (budget.allowModelCall()) {
             Prompt prompt = new Prompt(conversation, options);
             ChatResponse response = chatModel.call(prompt);
+            if (costMeter != null) {
+                var usage = response.getMetadata().getUsage();
+                costMeter.record(
+                        usage.getPromptTokens() == null ? 0 : usage.getPromptTokens().longValue(),
+                        usage.getCompletionTokens() == null ? 0 : usage.getCompletionTokens().longValue());
+            }
             if (response.hasToolCalls()) {
                 response.getResult().getOutput().getToolCalls().forEach(call ->
                         System.out.println("model asks for: " + call.name()));
@@ -82,6 +93,9 @@ public class AgentRunner {
         } else {
             System.out.println("answer: " + finalAnswer);
             System.out.println("budget: " + budget.summary());
+            if (costMeter != null) {
+                System.out.println("cost  : " + costMeter.receipt());
+            }
         }
     }
 }

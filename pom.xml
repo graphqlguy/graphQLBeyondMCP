@@ -89,6 +89,12 @@
 			<artifactId>graphql-java</artifactId>
 			<version>25.0</version>
 		</dependency>
+		<!-- Meters for the cost accounting: the same registry your service already
+		     ships operational metrics through -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+		</dependency>
 		<!-- The course's fixed token yardstick -->
 		<dependency>
 			<groupId>com.knuddels</groupId>
