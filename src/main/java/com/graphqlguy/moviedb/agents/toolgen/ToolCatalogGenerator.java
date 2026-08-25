@@ -13,10 +13,14 @@ import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Walks the schema's Query and Mutation roots and emits one tool per allow-listed
@@ -81,11 +85,43 @@ public class ToolCatalogGenerator {
             }
             inputSchema.put("additionalProperties", false);
 
-            String document = operationDocument(operationKind, field);
+            String document = curatedOverride(field.getName())
+                    .orElseGet(() -> operationDocument(operationKind, field));
             int tokens = encoding.countTokens(
                     field.getName() + " " + description + " " + json.writeValueAsString(inputSchema));
+            String singleObjectArgument = null;
+            if (field.getArguments().size() == 1) {
+                GraphQLArgument only = field.getArguments().get(0);
+                if (JsonSchemaMapper.unwrapNonNull(only.getType())
+                        instanceof graphql.schema.GraphQLInputObjectType) {
+                    singleObjectArgument = only.getName();
+                }
+            }
             tools.add(new OperationTool(field.getName(), description, inputSchema,
-                    document, allowList.rolesFor(field.getName()), tokens));
+                    document, allowList.rolesFor(field.getName()), tokens,
+                    "mutation".equals(operationKind), singleObjectArgument));
+        }
+    }
+
+    /**
+     * A hand-curated operation document wins over the generated default when a file
+     * named after the tool exists under tool-selections/. Generation gets you a
+     * reviewed starting point; curation is how a human overrides it, richer or
+     * narrower, without touching the generator.
+     */
+    private java.util.Optional<String> curatedOverride(String toolName) {
+        Path file = Path.of("src/main/resources/tool-selections", toolName + ".graphql");
+        if (!Files.isRegularFile(file)) {
+            return java.util.Optional.empty();
+        }
+        try {
+            String document = Files.readAllLines(file).stream()
+                    .filter(line -> !line.strip().startsWith("#"))
+                    .collect(Collectors.joining(" "))
+                    .strip();
+            return document.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(document);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not read the curated selection " + file, e);
         }
     }
 

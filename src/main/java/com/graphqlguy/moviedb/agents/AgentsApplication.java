@@ -1,32 +1,41 @@
 package com.graphqlguy.moviedb.agents;
 
+import com.graphqlguy.moviedb.agents.agent.AgentRunner;
+import com.graphqlguy.moviedb.agents.auth.AuthSession;
 import com.graphqlguy.moviedb.agents.catalog.GraphQlToolCallback;
+import com.graphqlguy.moviedb.agents.safety.ApprovalGate;
+import com.graphqlguy.moviedb.agents.safety.RunBudget;
 import com.graphqlguy.moviedb.agents.toolgen.AllowList;
 import com.graphqlguy.moviedb.agents.toolgen.OperationTool;
 import com.graphqlguy.moviedb.agents.toolgen.ToolCatalogGenerator;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.UnExecutableSchemaGenerator;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import org.springframework.web.client.RestClient;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Class 2's command-line entry point. Commands:
+ * Commands, one per idea the course has introduced so far:
  * <pre>{@code
- *   catalog [role]         generate and print the tool catalog (optionally for one role)
- *   call <tool> <json>     execute one generated tool directly, proving the wiring
- *                          without any model in the loop
+ *   catalog [role]         Class 2: generate and print the tool catalog
+ *   call <tool> <json>     Class 2: execute one tool directly, no model involved
+ *   agent <task>           Class 4: the full loop with login, approval gate, and budget
+ *   probe-depth            Class 4: show the server's own depth cap refusing a
+ *                          pathological query, the backstop below every agent control
  * }</pre>
- * Configuration lives in application.yaml under agents.*: the schema file, the
- * allow-list file, and the GraphQL endpoint the callbacks post to.
  */
 @SpringBootApplication
 public class AgentsApplication {
@@ -36,18 +45,20 @@ public class AgentsApplication {
     }
 
     @Bean
-    CommandLineRunner commands(Environment env) {
+    CommandLineRunner commands(Environment env, ObjectProvider<ChatModel> chatModels) {
         return args -> {
             if (args.length == 0) {
                 System.out.println("""
                         Usage:
                           catalog [role]       generate and print the tool catalog
-                          call <tool> <json>   execute one generated tool against the endpoint""");
+                          call <tool> <json>   execute one generated tool against the endpoint
+                          agent <task>         run the agent loop (login, approval gate, budget)
+                          probe-depth          demonstrate the server's depth cap""");
                 return;
             }
             String schemaPath = env.getProperty("agents.schema", "src/main/resources/schema-snapshot.graphqls");
             String allowListPath = env.getProperty("agents.allow-list", "src/main/resources/tool-allowlist.txt");
-            String endpoint = env.getProperty("agents.endpoint", "http://localhost:8080/graphql");
+            String endpoint = env.getProperty("agents.endpoint", "http://localhost:8081/graphql");
 
             GraphQLSchema schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(
                     new SchemaParser().parse(Files.readString(Path.of(schemaPath))));
@@ -74,8 +85,7 @@ public class AgentsApplication {
                     }
                     String toolName = args[1];
                     String jsonArgs = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
-                    List<OperationTool> tools = generator.generate(schema, allowList, null);
-                    OperationTool tool = tools.stream()
+                    OperationTool tool = generator.generate(schema, allowList, null).stream()
                             .filter(t -> t.name().equals(toolName))
                             .findFirst()
                             .orElseThrow(() -> new IllegalArgumentException(
@@ -83,8 +93,53 @@ public class AgentsApplication {
                     System.out.println("operation : " + tool.operationDocument());
                     System.out.println("arguments : " + jsonArgs);
                     System.out.println();
-                    String result = new GraphQlToolCallback(tool, endpoint).call(jsonArgs);
-                    System.out.println(result);
+                    System.out.println(GraphQlToolCallback.plain(tool, endpoint).call(jsonArgs));
+                }
+                case "agent" -> {
+                    String task = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                    ChatModel chatModel = chatModels.getIfAvailable();
+                    if (task.isBlank() || chatModel == null) {
+                        System.out.println(task.isBlank()
+                                ? "agent needs a task, e.g.: agent add movie 1 to my watchlist"
+                                : "No chat model available; is Ollama running?");
+                        return;
+                    }
+                    String role = env.getProperty("agents.role", "concierge");
+                    String username = env.getProperty("agents.auth.username", "");
+                    AuthSession auth = username.isBlank()
+                            ? AuthSession.anonymous()
+                            : AuthSession.login(endpoint, username,
+                                    env.getProperty("agents.auth.password", ""));
+                    RunBudget budget = new RunBudget(
+                            env.getProperty("agents.budget.max-model-calls", Integer.class, 8),
+                            env.getProperty("agents.budget.max-tool-calls", Integer.class, 6));
+                    ApprovalGate gate = new ApprovalGate();
+                    List<ToolCallback> tools = generator.generate(schema, allowList, role).stream()
+                            .map(t -> (ToolCallback) new GraphQlToolCallback(t, endpoint, auth, gate, budget))
+                            .toList();
+                    System.out.println("role    : " + role + " (" + tools.size() + " tools)");
+                    System.out.println("user    : " + (username.isBlank() ? "(anonymous)" : username));
+                    System.out.println("task    : " + task);
+                    System.out.println();
+                    new AgentRunner(chatModel, env.getProperty("agents.model", "qwen3:8b"))
+                            .run(task, tools, budget);
+                }
+                case "probe-depth" -> {
+                    // Movie -> cast -> movie -> cast ... : the schema's real cycle,
+                    // nested far beyond any sane query's needs.
+                    StringBuilder q = new StringBuilder("query { movie(id: \"1\")");
+                    int pairs = 9;
+                    for (int i = 0; i < pairs; i++) {
+                        q.append(" { cast { movie");
+                    }
+                    q.append(" { title ").append("} ".repeat(pairs * 2 + 2));
+                    String pathological = q.toString();
+                    System.out.println("query  : " + pathological);
+                    System.out.println();
+                    System.out.println(RestClient.create().post().uri(endpoint)
+                            .header("Content-Type", "application/json")
+                            .body(Map.of("query", pathological))
+                            .retrieve().body(String.class));
                 }
                 default -> System.out.println("Unknown command: " + args[0]);
             }

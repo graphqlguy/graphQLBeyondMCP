@@ -50,6 +50,11 @@
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-model</artifactId>
 		</dependency>
+		<!-- The local chat model driving the agent command (any tool-calling model Ollama serves) -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-ollama</artifactId>
+		</dependency>
 		<!-- Schema parsing and the introspection walk -->
 		<dependency>
 			<groupId>com.graphql-java</groupId>

@@ -9,6 +9,23 @@ agents:
   allow-list: src/main/resources/tool-allowlist.txt
   # Where generated tools execute: the running moviedb Spring GraphQL service.
   endpoint: http://localhost:8081/graphql
+  # The identity the agent acts as: a real login against the service's own
+  # mutation. The seeded `user` account owns the two private demo watch lists,
+  # so myWatchLists is a genuine lookup with more than one answer. Blank
+  # credentials mean anonymous, and protected operations will be refused.
+  auth:
+    username: user
+    password: user123
+  # Which slice of the catalog the agent sees.
+  role: concierge
+  # Hard ceilings for one run; the loop stops when they are reached.
+  budget:
+    max-model-calls: 8
+    max-tool-calls: 6
+  # The local chat model for the agent command.
+  model: qwen3:8b
+
+spring.ai.ollama.base-url: http://localhost:11434
 
 logging:
   level:

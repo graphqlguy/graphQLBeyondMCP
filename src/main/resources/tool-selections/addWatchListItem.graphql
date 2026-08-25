@@ -1,0 +1,13 @@
+# Curated override. addWatchListItem returns AddWatchListItemResponse, whose only
+# scalar field is `success`, so the generated default selects that alone and tells
+# the agent nothing about what was added or why a write failed. Both useful halves
+# (`item` and the typed `error`) are object-shaped, which the conservative default
+# refuses to follow. This is the errors-as-data payload the agent has to read to
+# decide between retrying, correcting an id, and giving up.
+mutation Tool_addWatchListItem($input: AddWatchListItemInput!) {
+  addWatchListItem(input: $input) {
+    success
+    item { id titleType watched userNotes }
+    error { code message }
+  }
+}
