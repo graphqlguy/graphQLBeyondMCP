@@ -50,6 +50,11 @@
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-model</artifactId>
 		</dependency>
+		<!-- The local chat model driving the agent command (any tool-calling model Ollama serves) -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-ollama</artifactId>
+		</dependency>
 		<!-- Schema parsing and the introspection walk -->
 		<dependency>
 			<groupId>com.graphql-java</groupId>
@@ -77,4 +82,27 @@
 			</plugin>
 		</plugins>
 	</build>
+	<profiles>
+		<!-- reactor-netty already ships Netty's native macOS DNS resolver, but only the
+		     Intel build (osx-x86_64), which cannot load on Apple silicon: Netty then logs
+		     an ERROR at startup and falls back to the JDK resolver. This profile adds the
+		     matching aarch64 binary, and it activates only on an Apple-silicon Mac, so
+		     Intel Macs, Linux and Windows resolve exactly what they resolved before.
+		     The version comes from Spring Boot's Netty BOM. -->
+		<profile>
+			<id>macos-apple-silicon</id>
+			<activation>
+				<os><family>mac</family><arch>aarch64</arch></os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-resolver-dns-native-macos</artifactId>
+					<classifier>osx-aarch_64</classifier>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
+
 </project>

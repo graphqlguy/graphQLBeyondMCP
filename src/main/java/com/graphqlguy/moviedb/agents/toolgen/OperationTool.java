@@ -15,7 +15,11 @@ import java.util.Map;
  * @param operationDocument the persisted GraphQL document the callback executes
  * @param roles         which agent roles may see this tool; empty means every role
  * @param tokenCount    what advertising this tool costs, measured with one fixed tokenizer
+ * @param mutation      whether the operation writes; writes pass through the approval gate
+ * @param singleObjectArgument when the operation takes exactly one input-object argument,
+ *                      its name; the callback uses it to repair flattened arguments
  */
 public record OperationTool(String name, String description, Map<String, Object> inputSchema,
-                            String operationDocument, List<String> roles, int tokenCount) {
+                            String operationDocument, List<String> roles, int tokenCount,
+                            boolean mutation, String singleObjectArgument) {
 }
