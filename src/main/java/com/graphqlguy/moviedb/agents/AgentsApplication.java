@@ -43,6 +43,8 @@ import java.util.Map;
  *   spring-stream <ask>    Class 7: the same client, streaming the answer token by token
  *   recommend <ask>        Class 8: tools plus typed output; the answer arrives as
  *                          List<MovieRecommendation>, never as free text to parse
+ *   defer-demo             Class 9: graphql-java's experimental @defer, engine-level,
+ *                          with timestamps proving the initial payload arrives first
  *   probe-depth            Class 4: show the server's own depth cap refusing a
  *                          pathological query, the backstop below every agent control
  * }</pre>
@@ -68,6 +70,7 @@ public class AgentsApplication {
                           spring-agent <task>  the ChatClient with the advisor-owned loop
                           spring-stream <ask>  the same client, streaming the answer
                           recommend <ask>      tools plus typed output (List<MovieRecommendation>)
+                          defer-demo           graphql-java's experimental @defer, timestamped
                           probe-depth          demonstrate the server's depth cap""");
                 return;
             }
@@ -383,6 +386,8 @@ public class AgentsApplication {
                             + " typed entries; every field is a Java value, never text to parse");
                     System.out.println("budget : " + budget.summary());
                 }
+                case "defer-demo" ->
+                        new com.graphqlguy.moviedb.agents.incremental.DeferDemo().run();
                 case "probe-depth" -> {
                     // Movie -> cast -> movie -> cast ... : the schema's real cycle,
                     // nested far beyond any sane query's needs.
