@@ -1,11 +1,13 @@
 package com.graphqlguy.moviedb.agents.agent;
 
+import com.graphqlguy.moviedb.agents.safety.CostMeter;
 import com.graphqlguy.moviedb.agents.safety.RunBudget;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -51,6 +53,10 @@ public class AgentRunner {
     }
 
     public void run(String task, List<ToolCallback> tools, RunBudget budget) {
+        run(task, tools, budget, null);
+    }
+
+    public void run(String task, List<ToolCallback> tools, RunBudget budget, CostMeter costMeter) {
         ToolCallingChatOptions options = OllamaChatOptions.builder()
                 .model(modelName)
                 .toolCallbacks(tools)
@@ -64,6 +70,10 @@ public class AgentRunner {
         while (budget.allowModelCall()) {
             Prompt prompt = new Prompt(conversation, options);
             ChatResponse response = chatModel.call(prompt);
+            if (costMeter != null) {
+                Usage usage = response.getMetadata().getUsage();
+                costMeter.record(usage.getPromptTokens(), usage.getCompletionTokens());
+            }
             Generation generation = response.getResult();
             if (generation == null) {
                 break; // the provider returned an empty response; there is nothing to act on
@@ -98,6 +108,9 @@ public class AgentRunner {
         } else {
             System.out.println("answer: " + finalAnswer);
             System.out.println("budget: " + budget.summary());
+            if (costMeter != null) {
+                System.out.println("cost  : " + costMeter.receipt());
+            }
         }
     }
 }

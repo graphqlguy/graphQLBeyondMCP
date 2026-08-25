@@ -3,7 +3,10 @@ package com.graphqlguy.moviedb.agents.command;
 import com.graphqlguy.moviedb.agents.agent.AgentRunner;
 import com.graphqlguy.moviedb.agents.auth.AuthSession;
 import com.graphqlguy.moviedb.agents.safety.ApprovalGate;
+import com.graphqlguy.moviedb.agents.safety.CostMeter;
 import com.graphqlguy.moviedb.agents.safety.RunBudget;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.ObjectProvider;
@@ -67,16 +70,31 @@ public class RunAgentCommand implements AgentCommand {
         System.out.println("task    : " + task);
         System.out.println();
 
+        // Class 10: the same run, priced. A SimpleMeterRegistry keeps the counters
+        // for the length of this command; in a service it is the one Boot created.
+        var registry = new SimpleMeterRegistry();
+        CostMeter costMeter = new CostMeter(registry,
+                context.username().isBlank() ? "anonymous" : context.username(),
+                context.modelName(),
+                context.env().getProperty("agents.pricing.input-per-mtok", Double.class, 1.00),
+                context.env().getProperty("agents.pricing.output-per-mtok", Double.class, 5.00));
+
         // One runner for the whole exchange: a model that answers with a question
-        // gets an answer back, and the budget keeps counting across the turns.
+        // gets an answer back, and both the budget and the meter keep counting
+        // across the turns, because the cost of a conversation is the whole of it.
         AgentRunner runner = new AgentRunner(chatModel, context.modelName());
         String turn = task;
         while (!turn.isBlank()) {
-            runner.run(turn, tools, budget);
+            runner.run(turn, tools, budget, costMeter);
             System.out.println();
             System.out.print("reply, or blank to return to the menu: ");
             turn = context.console().hasNextLine() ? context.console().nextLine().strip() : "";
             System.out.println();
         }
+
+        System.out.println("meters: " + registry.getMeters().stream()
+                .map(m -> m.getId().getName() + m.getId().getTags() + "="
+                        + ((Counter) m).count())
+                .sorted().toList());
     }
 }
