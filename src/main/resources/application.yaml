@@ -1,14 +1,21 @@
 spring:
   main:
     web-application-type: none
+    # The console belongs to the menu and the transcripts, so the startup banner
+    # stays out of it.
+    banner-mode: off
 
 agents:
   # The schema the generator walks: a committed snapshot, regenerated deliberately,
   # so catalog changes show up in pull requests next to the schema change causing them.
   schema: src/main/resources/schema-snapshot.graphqls
+  allow-list: src/main/resources/tool-allowlist.txt
   # Where generated tools execute: the running moviedb Spring GraphQL service.
   endpoint: http://localhost:8081/graphql
 
 logging:
   level:
     root: warn
+  # Where those warnings go is set in logback-spring.xml: a file, so the console
+  # carries only what the commands printed. Read target/agents.log when a run fails.
+
