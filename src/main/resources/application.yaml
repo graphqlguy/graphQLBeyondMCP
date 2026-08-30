@@ -1,0 +1,14 @@
+spring:
+  main:
+    web-application-type: none
+
+agents:
+  # The schema the generator walks: a committed snapshot, regenerated deliberately,
+  # so catalog changes show up in pull requests next to the schema change causing them.
+  schema: src/main/resources/schema-snapshot.graphqls
+  # Where generated tools execute: the running moviedb Spring GraphQL service.
+  endpoint: http://localhost:8081/graphql
+
+logging:
+  level:
+    root: warn
