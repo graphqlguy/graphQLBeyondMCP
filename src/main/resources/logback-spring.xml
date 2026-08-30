@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The console belongs to the menu, the prompts and the transcripts, so logging goes
+  to a file and nowhere else. When a run fails, target/agents.log has the stack
+  trace and every warning the frameworks emitted.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <property name="LOG_FILE" value="target/agents.log"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+
+    <root level="WARN">
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

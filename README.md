@@ -1,29 +1,28 @@
 # graphQLMovieDB-agents
 
-Companion code for the **GraphQL for AI Agents (Beyond MCP)** course: a Java agent
-built against the Movie Database GraphQL service (`graphQLMovieDB`, expected running
-on port 8081).
+The Java companion for the graphQLGuy course "GraphQL for AI Agents (Beyond MCP)":
+agents built with Spring AI and LangChain4j against the Movie Database GraphQL
+service from the Spring GraphQL tutorial (`graphQLMovieDB`, expected running on
+port 8081).
 
-## How this repository is organised
+One branch per class, `agents_class_N`, each holding the cumulative working state
+at the end of that class. The Class 3 schema-navigation instrument lives in its own
+repository, `graphQLSchemaNav`.
 
-`main` is the **starting point**, not a finished project. It carries the project
-skeleton, the Maven dependencies, and the committed schema snapshot, and nothing
-else. Clone it and follow the classes; each one adds the code it teaches.
+## Class 2: tool generation
 
-Every class that changes code has a branch, `agents_class_N`, holding the cumulative
-state at the end of that class:
+```bash
+# Generate and print the tool catalog (the whole one, or one role's view)
+mvn -q spring-boot:run -Dspring-boot.run.arguments=catalog
+mvn -q spring-boot:run -Dspring-boot.run.arguments="catalog support"
 
-| Branch | Class |
-| --- | --- |
-| `agents_class_2` | Auto-generating tool definitions from a schema |
-| `agents_class_4` | Safety: approval gates, budgets, and the server's last word |
-| `agents_class_5` | LangChain4j integration |
-| `agents_class_6` | LangGraph4j integration |
-| `agents_class_7` | Spring AI integration |
-| `agents_class_8` | Structured output via fragments |
-| `agents_class_9` | Streaming and incremental delivery |
-| `agents_class_10` | Cost accounting per agent run |
-| `agents_class_11` | Testing agent-driven queries |
+# Execute one generated tool against the running service, no model involved
+mvn -q package -DskipTests
+java -jar target/moviedb-agents-0.0.1-SNAPSHOT.jar call movie '{"id":"1"}'
+```
 
-Classes 1 and 12 are theory and add no code. Class 3's schema-navigation instrument
-lives in its own repository, `graphQLSchemaNav`.
+The generator walks the schema snapshot, keeps only allow-listed operations
+(`src/main/resources/tool-allowlist.txt`, plain text, reviewed like code), maps
+argument types to JSON Schema, emits one persisted operation document per tool,
+and reports what advertising the catalog costs in tokens. The `call` command runs
+a tool through the same Spring AI `ToolCallback` contract a chat model would use.
