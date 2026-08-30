@@ -11,18 +11,49 @@ directive @Pattern(regexp: String!, message: String = "graphql.validation.Patter
 # comments start with # and are only for people reading this file.
 type Query {
     moviesAll: [Movie!]! @deprecated(reason: "Unbounded. Use 'movies' instead.")
+    """
+    Returns a movie by its database identifier. Use this when you have an exact
+    ID, typically from a prior `search` or `movies` call. Returns null if no
+    movie exists with that ID, so check for null before assuming success.
+    """
     movie(id: ID!): Movie
+    """
+    Returns a page of movies, optionally filtered. Pass a `MovieFilter` input to
+    constrain by release year window, genre, or minimum rating. Use `page` and
+    `size` for pagination; page numbering starts at 0. If `filter` is null, the
+    whole catalog is paged in the default sort order; pass `sort` to control
+    ordering. For free-text search across titles and names, use `search` instead.
+    """
     movies(filter: MovieFilter, page: Int = 0 @Range(min: 0), size: Int = 10 @Range(min: 1, max: 100), sort: MovieSort): MoviePage!
     moviesByIds(ids: [ID!]!): [Movie]
     searchMovies(title: String!): [Movie!]! @deprecated(reason: "Use 'search' instead.")
     people(page: Int = 0 @Range(min: 0), size: Int = 20 @Range(min: 1, max: 100)): PersonPage!
+    """
+    Returns a person by their database identifier, with the roles that connect
+    them to movies and TV shows. Use this when you have an exact ID, typically
+    from a prior `search` call. Returns null if no person exists with that ID.
+    To find a person by name, use `search` instead.
+    """
     person(id: ID!): Person
     searchPeople(name: String!): [Person!]! @deprecated(reason: "Use 'search' instead.")
+    """
+    Case-insensitive free-text search across movies, TV shows and people. Use
+    this when the user names something, or part of a name, instead of describing
+    it with structured criteria. Returns a union, so check `__typename` on each
+    result before reading its fields. For structured filtering of movies alone,
+    use `movies`; for exact-ID lookups, use `movie`, `person` or `tvShow`.
+    """
     search(query: String!): [SearchResult!]!
     """Look up a country by its ISO 3166-1 alpha-2 code, e.g. CZ"""
     country(code: ID!): Country
     """Search TMDB (The Movie Database) for movies by title"""
     tmdbSearch(title: String!): [TmdbResult!]!
+    """
+    Returns a TV show by its database identifier, including its seasons and
+    episode counts. Use this when you have an exact ID, typically from a prior
+    `search` call. Returns null if no TV show exists with that ID. To page
+    through every show, use `tvShows`; to find one by title, use `search`.
+    """
     tvShow(id: ID!): TvShow
     tvShows(page: Int = 0 @Range(min: 0), size: Int = 10 @Range(min: 1, max: 100)): TvShowPage!
     """The signed-in user's own watch lists, newest first."""

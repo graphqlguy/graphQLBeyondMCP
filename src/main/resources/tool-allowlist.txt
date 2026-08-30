@@ -1,0 +1,18 @@
+# The curation decision: which operations agents may see, and which roles see them.
+# One operation per line; an optional colon lists the roles allowed to use it.
+# Anything absent from this file is invisible to every agent. Reviewed like code.
+
+# Read-only lookups: safe for every agent role.
+movie
+movies
+search
+person
+tvShow
+
+# Watchlist reads are personal data: concierge only.
+myWatchLists: concierge
+
+# The one permitted write, and only for the concierge role.
+# Mutations beyond this line stay off the list entirely; Class 4 explains the
+# confirmation pattern that governs even this one.
+addWatchListItem: concierge
