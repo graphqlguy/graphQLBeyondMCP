@@ -1,447 +1,490 @@
-"""The Movie Database GraphQL API"""
 
-# ─── Scalars ────────────────────────────────────────────────────────
+
 scalar DateTime
+scalar CountryCode
 
-# ─── Directives ─────────────────────────────────────────────────────
-directive @Range(min: Int!, max: Int!) on ARGUMENT_DEFINITION
-directive @Size(min: Int = 0, max: Int!) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+directive @Range(min: Int = 0, max: Int = 2147483647, message: String = "graphql.validation.Range.message") on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+directive @Size(min: Int = 0, max: Int = 2147483647, message: String = "graphql.validation.Size.message") on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+directive @Pattern(regexp: String!, message: String = "graphql.validation.Pattern.message") on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
 
-# ─── Interfaces ───────────────────────────────────────────────────────
-
-"""Common shape for everything in the catalog (movies and TV shows). Phase 1 schema migration; Spring tutorial Class 12 already discusses interface vs union and now has a concrete example."""
-interface Title {
-  id: ID!
-  title: String!
-  genre: Genre!
-  rating: Float
-  plot: String
-  posterUrl: String
-  tmdbId: Int
-  reviews: [Review!]!
+# The single entry point of our API. This line is a comment, by the way:
+# comments start with # and are only for people reading this file.
+type Query {
+    moviesAll: [Movie!]! @deprecated(reason: "Unbounded. Use 'movies' instead.")
+    movie(id: ID!): Movie
+    movies(filter: MovieFilter, page: Int = 0 @Range(min: 0), size: Int = 10 @Range(min: 1, max: 100), sort: MovieSort): MoviePage!
+    moviesByIds(ids: [ID!]!): [Movie]
+    searchMovies(title: String!): [Movie!]! @deprecated(reason: "Use 'search' instead.")
+    people(page: Int = 0 @Range(min: 0), size: Int = 20 @Range(min: 1, max: 100)): PersonPage!
+    person(id: ID!): Person
+    searchPeople(name: String!): [Person!]! @deprecated(reason: "Use 'search' instead.")
+    search(query: String!): [SearchResult!]!
+    """Look up a country by its ISO 3166-1 alpha-2 code, e.g. CZ"""
+    country(code: ID!): Country
+    """Search TMDB (The Movie Database) for movies by title"""
+    tmdbSearch(title: String!): [TmdbResult!]!
+    tvShow(id: ID!): TvShow
+    tvShows(page: Int = 0 @Range(min: 0), size: Int = 10 @Range(min: 1, max: 100)): TvShowPage!
+    """The signed-in user's own watch lists, newest first."""
+    myWatchLists: [WatchList!]!
+    """Watch lists their owners marked public. Readable without signing in."""
+    publicWatchLists(page: Int = 0 @Range(min: 0), size: Int = 20 @Range(min: 1, max: 100)): [WatchList!]!
+    """One watch list by id. Public lists are readable by anyone; private lists only by their owner."""
+    watchList(id: ID!): WatchList
 }
 
-"""Type discriminator for polymorphic Title references (used by WatchListItem to point at either a Movie or a TvShow)."""
-enum TitleTypeEnum {
-  MOVIE
-  TV_SHOW
+"""Union of Movie and Person for cross-type search"""
+union SearchResult = Movie | Person | TvShow
+
+"""Something watchable: the fields a Movie and a TV show have in common."""
+interface Content {
+    id: ID!
+    title: String!
+    genre: Genre
+    rating: Float
+    posterUrl: String
+}
+
+"""
+    Custom Movie type
+    All movie details are taken from The Movie Database (TMDB)
+    Triple quotes allow multiline documentation.
+"""
+# We will expand the Movie type as we progress through the tutorial
+type Movie implements Content {
+    id: ID!
+    title: String!
+    releaseYear: Int!
+    genre: Genre
+    "Average rating from 0 to 10"
+    rating: Float
+    "Runtime in minutes"
+    runtime: Int
+    plot: String
+    posterUrl: String
+    "The Movie Database (TMDB) external identifier"
+    tmdbId: Int
+    """Live community rating from TMDB; null when the movie does not have a tmdbId or TMDB is unavailable"""
+    communityRating: CommunityRating
+    directors: [Person!]!
+    cast: [MovieCast!]!
+    reviews: [Review!]!
+    """Number of reviews - resolved as a grouped COUNT via @BatchMapping"""
+    reviewCount: Int!
 }
 
 enum Genre {
-  ACTION
-  ANIMATION
-  COMEDY
-  CRIME
-  DOCUMENTARY
-  DRAMA
-  FANTASY
-  HORROR
-  MUSICAL
-  MYSTERY
-  ROMANCE
-  SCIFI
-  THRILLER
-  WAR
-  WESTERN
-}
-
-enum Role {
-  USER
-  ADMIN
+    ACTION
+    COMEDY
+    CRIME
+    DRAMA
+    FANTASY
+    HORROR
+    MYSTERY
+    ROMANCE
+    SCIFI
+    THRILLER
+    WAR
+    WESTERN
 }
 
 enum MovieSortField {
-  TITLE
-  RELEASE_YEAR
-  RATING
-  RUNTIME
+    TITLE
+    RELEASE_YEAR
+    RATING
+    RUNTIME
 }
 
 enum SortOrder {
-  ASC
-  DESC
+    ASC
+    DESC
 }
 
-"""A person involved in a film or TV production"""
+input MovieFilter {
+    genre: Genre
+    minRating: Float
+    maxRating: Float
+    minYear: Int
+    maxYear: Int
+    titleContains: String
+}
+
+input MovieSort {
+    field: MovieSortField
+    order: SortOrder
+}
+
+type MoviePage {
+    content: [Movie!]!
+    totalElements: Int!
+    totalPages: Int!
+    currentPage: Int!
+    size: Int!
+    isFirst: Boolean!
+    isLast: Boolean!
+    hasNext: Boolean!
+    hasPrevious: Boolean!
+}
+
+"""A page of people"""
+type PersonPage {
+    content: [Person!]!
+    totalElements: Int!
+    totalPages: Int!
+    currentPage: Int!
+    size: Int!
+}
+
 type Person {
-  id: ID!
-  name: String!
-  birthYear: Int
-  nationality: String
-  biography: String
-  photoUrl: String
-  directedMovies: [Movie!]!
-  movieCastCredits: [MovieCast!]!
-  createdShows: [TvShow!]!
-  tvShowCastCredits: [TvShowCast!]!
+    id: ID!
+    name: String!
+    birthYear: Int
+    """Short biography blurb"""
+    biography: String
+    """Portrait image URL (TMDB)"""
+    photoUrl: String
+    """ISO 3166-1 alpha-2 country code"""
+    countryCode: CountryCode
+    """Country details resolved live from the external countries GraphQL API"""
+    country: Country
+    """Movies this person directed"""
+    directedMovies: [Movie!]!
+    """This person's acting credits in movies"""
+    movieCastCredits: [MovieCast!]!
+    """TV shows this person created"""
+    createdShows: [TvShow!]!
+    """This person's acting credits in TV shows"""
+    tvShowCastCredits: [TvShowCast!]!
 }
 
-"""A cast credit linking a person to a movie with their character name"""
+
 type MovieCast {
-  id: ID!
-  person: Person!
-  movie: Movie!
-  characterName: String
+    id: ID!
+    characterName: String!
+    person: Person!
+    movie: Movie!
 }
 
-"""A cast credit linking a person to a TV show with their character name"""
-type TvShowCast {
-  id: ID!
-  person: Person!
-  tvShow: TvShow!
-  characterName: String
+type Country {
+    "ISO 3166-1 alpha-2 code, e.g. CZ"
+    code: ID!
+    name: String!
+    emoji: String
+    capital: String
+    currency: String
 }
 
-"""A user review for a movie or TV show"""
-type Review {
-  id: ID!
-  score: Int!
-  comment: String
-  createdAt: DateTime!
-  user: User!
+"""A movie search result from TMDB (The Movie Database)"""
+type TmdbResult {
+    tmdbId: Int!
+    title: String!
+    releaseYear: Int
+    overview: String
+    posterUrl: String
+    """TMDB community vote average on a 0-10 scale"""
+    rating: Float
 }
 
-"""Community rating from TMDB (fetched live, not stored in DB)"""
 type CommunityRating {
-  voteAverage: Float!
-  voteCount: Int!
+    """Vote average on a 0-10 scale"""
+    voteAverage: Float!
+    voteCount: Int!
 }
 
-"""A movie in the database"""
-type Movie implements Title {
-  id: ID!
-  title: String!
-  releaseYear: Int!
-  genre: Genre!
-  "Rating from 0.0 to 10.0"
-  rating: Float
-  "Runtime in minutes"
-  runtime: Int
-  plot: String
-  inTheaters: Boolean!
-  posterUrl: String
-  tmdbId: Int
-  directors: [Person!]!
-  cast: [MovieCast!]!
-  reviews: [Review!]!
-  "TMDB community rating — resolved via @BatchMapping"
-  communityRating: CommunityRating
-  "Number of reviews — resolved via DataLoader"
-  reviewCount: Int!
+type AuthResponse {
+    token: String!
+    user: User!
+}
+
+type User {
+    id: ID!
+    username: String!
+    email: String
+    role: Role!
+}
+
+enum Role {
+    USER,
+    ADMIN
+}
+
+type Mutation {
+    deleteMovie(id: ID!): DeleteMovieResponse!
+    "Deletes a person. With force: true, all movie/TV credits are unlinked first; otherwise a linked person yields a structured error."
+    deletePerson(id: ID!, force: Boolean! = false): DeletePersonResponse!
+    createMovie(input: CreateMovieInput!): Movie!
+    updateMovie(input: UpdateMovieInput!): Movie!
+    createPerson(input: CreatePersonInput!): Person!
+    updatePerson(input: UpdatePersonInput!): Person!
+    login(input: LoginInput!): AuthResponse!
+    """Create a new USER account and sign in immediately"""
+    register(input: RegisterInput!): AuthResponse!
+
+    """Submit a review for a movie or TV show (one per user per title)"""
+    createReview(input: CreateReviewInput!): Review!
+    """Delete a review (owner or admin only)"""
+    deleteReview(id: ID!): DeleteReviewResponse!
+
+    """Create a watch list owned by the signed-in user."""
+    createWatchList(input: CreateWatchListInput!): WatchList!
+    """Rename a list or change whether it is public. Owner only."""
+    updateWatchList(id: ID!, input: UpdateWatchListInput!): WatchList!
+    """Delete a list and everything on it. Owner only."""
+    deleteWatchList(id: ID!): DeleteWatchListResponse!
+    """Add a movie or TV show to one of your lists. Adding a title that is already there returns the existing entry, so retrying is safe."""
+    addWatchListItem(input: AddWatchListItemInput!): AddWatchListItemResponse!
+    """Remove one entry from a list. Owner only."""
+    removeWatchListItem(id: ID!): RemoveWatchListItemResponse!
+    """Mark an entry watched or unwatched. Owner only."""
+    markWatchListItemWatched(id: ID!, watched: Boolean!): WatchListItem!
 
 }
 
-"""Notification published when a review is posted"""
-type ReviewNotification {
-  review: Review!
-  movieId: ID
-  tvShowId: ID
-  movieTitle: String
+
+input LoginInput {
+    username: String!
+    password: String!
+}
+
+"""Input for creating an account; field rules enforced by validation directives"""
+input RegisterInput {
+    username: String! @Size(min: 3, max: 50)
+    email: String! @Size(max: 120) @Pattern(regexp: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+    password: String! @Size(min: 6, max: 100)
+}
+
+"""Result of deleting a movie."""
+type DeleteMovieResponse {
+    success: Boolean!
+    message: String!
+    """ID of the deleted movie, or null if nothing was deleted."""
+    deletedId: ID
+}
+
+type DeletePersonResponse {
+    success: Boolean!
+    error: DeletePersonError
+    deletedId: ID
+}
+
+enum DeletePersonError {
+    LINKED_TO_MOVIE
+    LINKED_TO_TV_SHOW
+}
+
+"""Input for creating a movie."""
+input CreateMovieInput {
+    title: String! @Size(min: 1, max: 200)
+    releaseYear: Int! @Range(min: 1888, max: 2100)
+    genre: Genre!
+    """Rating from 0.0 to 10.0"""
+    rating: Float @Range(min: 0, max: 10)
+    """Runtime in minutes"""
+    runtime: Int @Range(min: 1, max: 600)
+    plot: String @Size(max: 2000)
+    posterUrl: String @Size(max: 500)
+    tmdbId: Int
+}
+
+"""Input for updating a movie; omitted fields are left unchanged."""
+input UpdateMovieInput {
+    id: ID!
+    title: String @Size(min: 1, max: 200)
+    releaseYear: Int @Range(min: 1888, max: 2100)
+    genre: Genre
+    """Rating from 0.0 to 10.0"""
+    rating: Float @Range(min: 0, max: 10)
+    """Runtime in minutes"""
+    runtime: Int @Range(min: 1, max: 600)
+    plot: String @Size(max: 2000)
+    posterUrl: String @Size(max: 500)
+    tmdbId: Int
+}
+
+input UpdatePersonInput {
+    id: ID!
+    name: String
+    birthYear: Int
+    countryCode: CountryCode
+}
+
+input CreatePersonInput {
+    name: String!
+    birthYear: Int
+    countryCode: CountryCode
+}
+
+"""A television show"""
+type TvShow implements Content {
+    id: ID!
+    title: String!
+    genre: Genre
+    "Average rating on a scale of 0-10"
+    rating: Float
+    posterUrl: String
+    startYear: Int!
+    "Null while the show is still airing"
+    endYear: Int
+    seasons: Int
+    plot: String
+    creators: [Person!]!
+    cast: [TvShowCast!]!
+    episodes: [Episode!]!
+    reviews: [Review!]!
 }
 
 """A single episode of a TV show"""
 type Episode {
-  id: ID!
-  seasonNumber: Int!
-  episodeNumber: Int!
-  title: String!
-  overview: String
-  runtime: Int
-  airYear: Int
+    id: ID!
+    seasonNumber: Int!
+    episodeNumber: Int!
+    title: String!
+    overview: String
+    "Runtime in minutes"
+    runtime: Int
+    airYear: Int
 }
 
-"""A TV show in the database"""
-type TvShow implements Title {
-  id: ID!
-  title: String!
-  genre: Genre!
-  "Rating from 0.0 to 10.0"
-  rating: Float
-  posterUrl: String
-  tmdbId: Int
-  startYear: Int!
-  "Null if still airing"
-  endYear: Int
-  seasons: Int
-  plot: String
-  inProduction: Boolean!
-  creators: [Person!]!
-  cast: [TvShowCast!]!
-  episodes: [Episode!]!
-  reviews: [Review!]!
+"""An actor's role in a TV show, linking a person to a character"""
+type TvShowCast {
+    id: ID!
+    characterName: String!
+    person: Person!
+    tvShow: TvShow!
 }
 
-"""Union of Movie and TvShow for cross-type search"""
-union SearchResult = Movie | TvShow
-
-"""An authenticated user"""
-type User {
-  id: ID!
-  username: String!
-  email: String!
-  role: Role!
-}
-
-"""Authentication result containing JWT token"""
-type AuthPayload {
-  token: String!
-  user: User!
-}
-
-"""Response for delete operations"""
-type DeleteResponse {
-  success: Boolean!
-  message: String!
-}
-
-"""A user-owned collection of titles. Phase 1 schema migration."""
-type WatchList {
-  id: ID!
-  user: User!
-  name: String!
-  description: String
-  isPublic: Boolean!
-  createdAt: DateTime!
-  items: [WatchListItem!]!
-  itemCount: Int!
-}
-
-"""An entry in a WatchList referencing a polymorphic Title."""
-type WatchListItem {
-  id: ID!
-  watchList: WatchList!
-  "The referenced title. Nullable because WatchListItem references its title polymorphically (titleId + titleType discriminator) without a database-enforced foreign key, so a deleted Movie or TvShow leaves a dangling reference. Returning null here avoids a non-null contract violation that would collapse the parent watchlist."
-  title: Title
-  addedAt: DateTime!
-  watched: Boolean!
-  watchedAt: DateTime
-  userNotes: String
-}
-
-input CreateWatchListInput {
-  name: String! @Size(max: 120)
-  description: String @Size(max: 1000)
-  isPublic: Boolean
-}
-
-input UpdateWatchListInput {
-  name: String @Size(max: 120)
-  description: String @Size(max: 1000)
-  isPublic: Boolean
-}
-
-input AddWatchListItemInput {
-  watchListId: ID!
-  titleId: ID!
-  titleType: TitleTypeEnum!
-  userNotes: String @Size(max: 1000)
-}
-
-# ─── Pagination ───────────────────────────────────────────────────────
-
-type MoviePage {
-  content: [Movie!]!
-  totalElements: Int!
-  totalPages: Int!
-  currentPage: Int!
-  size: Int!
-  isFirst: Boolean!
-  isLast: Boolean!
-  hasNext: Boolean!
-  hasPrevious: Boolean!
-}
-
-type PersonPage {
-  content: [Person!]!
-  totalElements: Int!
-  totalPages: Int!
-  currentPage: Int!
-  size: Int!
-}
-
+"""A page of TV shows"""
 type TvShowPage {
-  content: [TvShow!]!
-  totalElements: Int!
-  totalPages: Int!
-  currentPage: Int!
-  size: Int!
+    content: [TvShow!]!
+    totalElements: Int!
+    totalPages: Int!
+    currentPage: Int!
+    size: Int!
 }
 
-"""Relay-style cursor-based connection"""
-type MovieConnection {
-  edges: [MovieEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type MovieEdge {
-  node: Movie!
-  cursor: String!
-}
-
-type PageInfo {
-  hasNextPage: Boolean!
-  hasPreviousPage: Boolean!
-  startCursor: String
-  endCursor: String
-}
-
-# ─── TMDB ────────────────────────────────────────────────────────────
-
-type TmdbResult {
-  tmdbId: Int!
-  title: String!
-  releaseYear: Int
-  overview: String
-  posterUrl: String
-  rating: Float
-}
-
-# ─── Input types ─────────────────────────────────────────────────────
-
-input MovieFilter {
-  genre: Genre
-  minRating: Float
-  maxRating: Float
-  minYear: Int
-  maxYear: Int
-  titleContains: String
-  inTheaters: Boolean
-}
-
-input MovieSort {
-  field: MovieSortField
-  order: SortOrder
-}
-
-input CreateMovieInput {
-  title: String!
-  releaseYear: Int!
-  genre: Genre!
-  rating: Float
-  runtime: Int
-  plot: String
-  inTheaters: Boolean!
-  posterUrl: String
-  tmdbId: Int
-  directorIds: [ID!]
-}
-
-input UpdateMovieInput {
-  title: String
-  releaseYear: Int
-  genre: Genre
-  rating: Float
-  runtime: Int
-  plot: String
-  inTheaters: Boolean
-  posterUrl: String
-  tmdbId: Int
-}
-
-input CreatePersonInput {
-  name: String!
-  birthYear: Int
-  nationality: String
-  biography: String
-  photoUrl: String
-}
-
-input UpdatePersonInput {
-  name: String
-  birthYear: Int
-  nationality: String
-  biography: String
-  photoUrl: String
-}
-
-input RegisterInput {
-  username: String!
-  email: String!
-  password: String!
-}
-
-input LoginInput {
-  username: String!
-  password: String!
-}
-
-# ─── Root types ──────────────────────────────────────────────────────
-
-type Query {
-  # Movies
-  movie(id: ID!): Movie
-  movies(filter: MovieFilter, page: Int = 0, size: Int = 10, sort: MovieSort): MoviePage!
-  searchMovies(title: String!): [Movie!]!
-  moviesConnection(filter: MovieFilter, first: Int = 10, after: String): MovieConnection!
-
-  # Persons
-  person(id: ID!): Person
-  persons(page: Int = 0, size: Int = 20): PersonPage!
-  searchPersons(name: String!): [Person!]!
-
-  # TV Shows
-  tvShow(id: ID!): TvShow
-  tvShows(page: Int = 0, size: Int = 10): TvShowPage!
-
-  # Cross-type search (union)
-  search(query: String!): [SearchResult!]!
-
-  # TMDB
-  tmdbSearch(title: String!): [TmdbResult!]!
-
-  # Auth
-  me: User
-
-  # WatchLists. Phase 1 additions.
-  "Look up a watch list by id. Honors public/private visibility."
-  watchList(id: ID!): WatchList
-  "List the current user's watch lists."
-  myWatchLists: [WatchList!]!
-  "List public watch lists from any user."
-  publicWatchLists(page: Int = 0, size: Int = 20): [WatchList!]!
-}
-
-type Mutation {
-  # Public
-  register(input: RegisterInput!): AuthPayload!
-  login(input: LoginInput!): AuthPayload!
-
-  # Movies — ADMIN only
-  createMovie(input: CreateMovieInput!): Movie!
-  updateMovie(id: ID!, input: UpdateMovieInput!): Movie
-  deleteMovie(id: ID!): DeleteResponse!
-  addDirectorToMovie(movieId: ID!, personId: ID!): Movie!
-  removeDirectorFromMovie(movieId: ID!, personId: ID!): Movie!
-  addCastMember(movieId: ID!, personId: ID!, characterName: String): MovieCast!
-  removeCastMember(castId: ID!): DeleteResponse!
-
-  # TV Shows — ADMIN only
-  addPersonToTvShowCreators(tvShowId: ID!, personId: ID!): TvShow!
-  removePersonFromTvShowCreators(tvShowId: ID!, personId: ID!): TvShow!
-  addTvShowCastMember(tvShowId: ID!, personId: ID!, characterName: String): TvShowCast!
-  removeTvShowCastMember(castId: ID!): DeleteResponse!
-
-  # Persons — ADMIN only
-  createPerson(input: CreatePersonInput!): Person!
-  updatePerson(id: ID!, input: UpdatePersonInput!): Person
-  deletePerson(id: ID!): DeleteResponse!
-
-  # Reviews — authenticated users only
-  addMovieReview(movieId: ID!, score: Int! @Range(min: 1, max: 10), comment: String @Size(max: 2000)): Review!
-  addTvShowReview(tvShowId: ID!, score: Int! @Range(min: 1, max: 10), comment: String @Size(max: 2000)): Review!
-  deleteReview(id: ID!): DeleteResponse!
-
-  # WatchLists. Phase 1 additions.
-  createWatchList(input: CreateWatchListInput!): WatchList!
-  updateWatchList(id: ID!, input: UpdateWatchListInput!): WatchList!
-  deleteWatchList(id: ID!): DeleteResponse!
-  addWatchListItem(input: AddWatchListItemInput!): WatchListItem!
-  removeWatchListItem(id: ID!): DeleteResponse!
-  markWatchListItemWatched(id: ID!, watched: Boolean!): WatchListItem!
+"""A user's review of a movie or TV show"""
+type Review {
+    id: ID!
+    """Rating from 1 to 10"""
+    score: Int!
+    comment: String
+    createdAt: DateTime!
+    user: User!
 }
 
 type Subscription {
-  "Receive live notifications when reviews are posted. Optionally filter by movieId."
-  reviewAdded(movieId: ID): ReviewNotification!
+    """Live notifications when reviews are posted, pushed over WebSocket. Optionally filter by movieId or tvShowId."""
+    reviewAdded(movieId: ID, tvShowId: ID): ReviewNotification!
+}
+
+"""Notification pushed to subscribers when a review is created"""
+type ReviewNotification {
+    review: Review!
+    """Set when the review targets a movie"""
+    movieId: ID
+    """Set when the review targets a TV show"""
+    tvShowId: ID
+    """Title of the reviewed movie or show"""
+    title: String!
+}
+
+"""
+The review target. @oneOf makes this an input union: exactly one of the
+fields must be provided, enforced by GraphQL itself before any resolver runs.
+"""
+input ReviewSubjectInput @oneOf {
+    movieId: ID
+    tvShowId: ID
+}
+
+"""Input for creating a review of a movie or TV show"""
+input CreateReviewInput {
+    subject: ReviewSubjectInput!
+    """Rating from 1 to 10"""
+    score: Int! @Range(min: 1, max: 10)
+    comment: String @Size(max: 2000)
+}
+
+"""Result of deleting a review."""
+type DeleteReviewResponse {
+    success: Boolean!
+    """ID of the deleted review, or null if nothing was deleted."""
+    deletedId: ID
+}
+
+"""A named collection of titles a user wants to watch or has watched."""
+type WatchList {
+    id: ID!
+    user: User!
+    name: String!
+    description: String
+    isPublic: Boolean!
+    createdAt: DateTime!
+    items: [WatchListItem!]!
+    """How many titles are on the list."""
+    itemCount: Int!
+}
+
+"""One title on a watch list."""
+type WatchListItem {
+    id: ID!
+    """The referenced title. Null when the Movie or TvShow behind it has been deleted: the reference is polymorphic with no foreign key, so a null here costs one field instead of collapsing the list."""
+    title: Content
+    titleType: TitleTypeEnum!
+    addedAt: DateTime!
+    watched: Boolean!
+    watchedAt: DateTime
+    userNotes: String
+}
+
+"""Whether a watch-list entry points at a movie or a TV show."""
+enum TitleTypeEnum {
+    MOVIE
+    TV_SHOW
+}
+
+type DeleteWatchListResponse {
+    success: Boolean!
+    """ID of the deleted list, or null if nothing was deleted."""
+    deletedId: ID
+}
+
+type RemoveWatchListItemResponse {
+    success: Boolean!
+    """ID of the removed entry, or null if nothing was removed."""
+    deletedId: ID
+}
+
+"""Why an addWatchListItem call added nothing."""
+type AddWatchListItemError {
+    """WATCHLIST_NOT_FOUND or TITLE_NOT_FOUND. Branch on this, not on the message."""
+    code: String!
+    """Human-readable explanation, safe to show to a user."""
+    message: String!
+}
+
+"""The outcome of addWatchListItem. Failures a caller can anticipate arrive here as data."""
+type AddWatchListItemResponse {
+    success: Boolean!
+    item: WatchListItem
+    error: AddWatchListItemError
+}
+
+input CreateWatchListInput {
+    name: String! @Size(max: 120)
+    description: String @Size(max: 1000)
+    isPublic: Boolean
+}
+
+input UpdateWatchListInput {
+    name: String @Size(max: 120)
+    description: String @Size(max: 1000)
+    isPublic: Boolean
+}
+
+input AddWatchListItemInput {
+    watchListId: ID!
+    titleId: ID!
+    titleType: TitleTypeEnum!
+    userNotes: String @Size(max: 1000)
 }
