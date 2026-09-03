@@ -89,6 +89,12 @@
 			<artifactId>graphql-java</artifactId>
 			<version>25.0</version>
 		</dependency>
+		<!-- Spring AI's progressive tool disclosure: the ToolSearchToolCallingAdvisor
+		     and its three tool indexes. Brings Lucene with it. -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-tool-search-advisor</artifactId>
+		</dependency>
 		<!-- The course's fixed token yardstick -->
 		<dependency>
 			<groupId>com.knuddels</groupId>
@@ -100,6 +106,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- SimpleVectorStore, so the tool-search benchmark can measure the vector
+		     index beside the regex and Lucene ones. Embeddings come from Ollama. -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-vector-store</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -107,6 +119,13 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<!-- Netty loads a native library when the embedding client starts, and
+					     the JVM prints a restricted-method warning unless native access is
+					     granted. The warning goes to the console before any logger exists,
+					     so it is silenced here rather than in logback-spring.xml. -->
+					<jvmArguments>--enable-native-access=ALL-UNNAMED</jvmArguments>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

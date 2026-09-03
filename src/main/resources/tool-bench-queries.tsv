@@ -1,0 +1,9 @@
+# Queries for the tool-search benchmark, one per line: the question a user would
+# ask, a tab, then every tool the agent needs to answer it. A task that needs
+# three tools is the interesting case: an index that surfaces two of them leaves
+# the agent stuck, however few tokens it saved.
+add matrix to my watchlist	search	myWatchLists	addWatchListItem
+what is the plot of The Matrix	search	movie
+which of my lists has the most items	myWatchLists
+mark the first item on my weekend list as watched	myWatchLists	watchList	markWatchListItemWatched
+who directed Blade Runner	search	person

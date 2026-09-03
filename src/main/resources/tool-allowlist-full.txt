@@ -1,0 +1,36 @@
+# The same curation decision as tool-allowlist.txt, taken by a team that ships the
+# whole product surface to agents instead of one narrow concierge. Every operation
+# here is still reviewed by a human, and every write still passes the Class 4
+# approval gate; the only thing that changed is how many operations survived
+# curation. Class 7's section on tool search uses this file to show
+# what a larger catalog costs and what Spring AI's tool search does about it.
+#
+# Point the app at it by changing agents.allow-list in application.yaml to this
+# file, then rebuilding: the yaml travels inside the jar.
+
+# Reads: the product's whole lookup surface.
+movie
+movies
+person
+search
+country
+tmdbSearch
+tvShow
+myWatchLists
+publicWatchLists
+watchList
+
+# Writes a support agent may perform on a signed-in user's behalf. Each one still
+# stops at the approval gate before it executes.
+createReview
+deleteReview
+createWatchList
+updateWatchList
+deleteWatchList
+addWatchListItem
+removeWatchListItem
+markWatchListItemWatched
+
+# Account administration: never for the concierge or support roles.
+deletePerson: admin
+register: admin
