@@ -27,8 +27,20 @@ agents:
     max-tool-calls: 6
   # The local chat model for the agent command.
   model: qwen3:8b
+  # Tool search, off by default so every earlier class's run
+  # reproduces unchanged. Set it to true, rebuild, and the catalog goes to Spring
+  # AI's ToolSearchToolCallingAdvisor instead of being advertised in full.
+  # The index decides how the model finds a tool by name and description.
+  # regex, the framework's own default, matches substrings and therefore reads
+  # inside names like addWatchListItem; lucene scores with BM25 but treats each
+  # such name as a single token. Class 7 measures the difference.
+  tool-search: true
+  tool-search-index: regex
 
 spring.ai.ollama.base-url: http://localhost:11434
+# The embedding model the tool-search benchmark uses for its vector index.
+# Pull it once with: ollama pull nomic-embed-text
+spring.ai.ollama.embedding.options.model: nomic-embed-text
 
 logging:
   level:

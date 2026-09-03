@@ -4,6 +4,9 @@ import com.graphqlguy.moviedb.agents.auth.AuthSession;
 import com.graphqlguy.moviedb.agents.safety.ApprovalGate;
 import com.graphqlguy.moviedb.agents.safety.RunBudget;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.ai.tool.ToolCallback;
@@ -59,23 +62,38 @@ public class SpringStreamCommand implements AgentCommand {
         AuthSession auth = context.login();
         RunBudget budget = context.budget();
         List<ToolCallback> callbacks =
-                context.callbacks(context.tools(role), auth, new ApprovalGate(), budget);
+                context.callbacks(context.tools(role), auth, new ApprovalGate(context.console()), budget);
 
         System.out.println("framework : Spring AI (ChatClient, streaming)");
         System.out.println("role      : " + role + " (" + callbacks.size() + " tools)");
         System.out.println("task      : " + task);
         System.out.println();
 
-        ChatClient.create(springModel).prompt()
-                .system(SpringAgentCommand.SYSTEM)
-                .user(task)
-                .tools(callbacks.toArray())
-                .options(OllamaChatOptions.builder().model(context.modelName()))
-                .stream()
-                .content()                 // Flux<String>: the answer, token by token
-                .doOnNext(System.out::print)
-                .blockLast();
-        System.out.println();
-        System.out.println("budget: " + budget.summary());
+        // The same memory advisor as the non-streaming command: what the loop
+        // remembers does not depend on how the answer is delivered.
+        ChatMemory memory = MessageWindowChatMemory.builder().build();
+        String conversationId = "spring-stream-" + System.nanoTime();
+        ChatClient client = ChatClient.create(springModel);
+
+        String turn = task;
+        while (!turn.isBlank()) {
+            client.prompt()
+                    .system(SpringAgentCommand.SYSTEM)
+                    .user(turn)
+                    .tools(callbacks.toArray())
+                    .options(OllamaChatOptions.builder().model(context.modelName()))
+                    .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+                    .stream()
+                    .content()                 // Flux<String>: the answer, token by token
+                    .doOnNext(System.out::print)
+                    .blockLast();
+            System.out.println();
+            System.out.println("budget: " + budget.summary());
+            System.out.println();
+            System.out.print("reply, or blank to return to the menu: ");
+            turn = context.console().hasNextLine() ? context.console().nextLine().strip() : "";
+            System.out.println();
+        }
     }
 }
