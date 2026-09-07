@@ -66,12 +66,16 @@ public class DeferDemo {
             CountDownLatch done = new CountDownLatch(1);
             incremental.getIncrementalItemPublisher().subscribe(
                     new Subscriber<DelayedIncrementalPartialResult>() {
-                        public void onSubscribe(Subscription s) { s.request(Long.MAX_VALUE); }
+                        public void onSubscribe(Subscription subscription) {
+                    subscription.request(Long.MAX_VALUE);
+                }
                         public void onNext(DelayedIncrementalPartialResult payload) {
                             System.out.printf("[t=%4dms] deferred payload: %s%n",
                                     System.currentTimeMillis() - start, payload.toSpecification());
                         }
-                        public void onError(Throwable t) { done.countDown(); }
+                        public void onError(Throwable failure) {
+                    done.countDown();
+                }
                         public void onComplete() { done.countDown(); }
                     });
             done.await();
