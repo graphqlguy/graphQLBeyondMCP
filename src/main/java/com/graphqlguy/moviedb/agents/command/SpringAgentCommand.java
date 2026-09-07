@@ -192,7 +192,7 @@ public class SpringAgentCommand implements AgentCommand {
                 if (embeddings == null) {
                     throw new IllegalStateException("agents.tool-search-index is vector, "
                             + "which needs an embedding model; is Ollama running with "
-                            + "the model named by spring.ai.ollama.embedding.options.model?");
+                            + "the model named by spring.ai.ollama.embedding.model?");
                 }
                 yield new VectorToolIndex(SimpleVectorStore.builder(embeddings).build());
             }
