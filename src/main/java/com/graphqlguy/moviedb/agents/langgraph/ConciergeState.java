@@ -44,8 +44,8 @@ public class ConciergeState extends AgentState {
     /** The most recent model message, when the last message is one. */
     public Optional<AiMessage> lastAiMessage() {
         List<ChatMessage> messages = messages();
-        if (!messages.isEmpty() && messages.get(messages.size() - 1) instanceof AiMessage ai) {
-            return Optional.of(ai);
+        if (!messages.isEmpty() && messages.get(messages.size() - 1) instanceof AiMessage aiMessage) {
+            return Optional.of(aiMessage);
         }
         return Optional.empty();
     }
