@@ -40,7 +40,7 @@ public class AllowList {
                 String[] parts = line.split(":", 2);
                 List<String> roles = parts.length == 1 ? List.of()
                         : Arrays.stream(parts[1].split(",")).map(String::strip)
-                                .filter(s -> !s.isEmpty()).toList();
+                                .filter(role -> !role.isEmpty()).toList();
                 entries.put(parts[0].strip(), roles);
             }
         } catch (IOException e) {

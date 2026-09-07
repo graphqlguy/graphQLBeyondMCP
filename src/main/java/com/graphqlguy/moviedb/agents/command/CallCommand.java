@@ -39,7 +39,7 @@ public class CallCommand implements AgentCommand {
         String toolName = args.get(0);
         String jsonArgs = String.join(" ", args.subList(1, args.size()));
         OperationTool tool = context.tools(null).stream()
-                .filter(t -> t.name().equals(toolName))
+                .filter(candidate -> candidate.name().equals(toolName))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No allow-listed tool named '" + toolName + "'"));

@@ -98,14 +98,15 @@ public class ToolCatalogGenerator {
         StringBuilder doc = new StringBuilder(operationKind).append(" Tool_").append(field.getName());
         if (!field.getArguments().isEmpty()) {
             List<String> varDefs = field.getArguments().stream()
-                    .map(a -> "$" + a.getName() + ": " + GraphQLTypeUtil.simplePrint(a.getType()))
+                    .map(argument -> "$" + argument.getName() + ": "
+                        + GraphQLTypeUtil.simplePrint(argument.getType()))
                     .toList();
             doc.append("(").append(String.join(", ", varDefs)).append(")");
         }
         doc.append(" { ").append(field.getName());
         if (!field.getArguments().isEmpty()) {
             List<String> args = field.getArguments().stream()
-                    .map(a -> a.getName() + ": $" + a.getName())
+                    .map(argument -> argument.getName() + ": $" + argument.getName())
                     .toList();
             doc.append("(").append(String.join(", ", args)).append(")");
         }
@@ -120,8 +121,8 @@ public class ToolCatalogGenerator {
             return ""; // scalar, enum, union, or interface returns: nothing generatable safely
         }
         List<String> scalarFields = objectType.getFieldDefinitions().stream()
-                .filter(f -> {
-                    GraphQLType fieldType = GraphQLTypeUtil.unwrapAll(f.getType());
+                .filter(field -> {
+                    GraphQLType fieldType = GraphQLTypeUtil.unwrapAll(field.getType());
                     return fieldType instanceof GraphQLScalarType || fieldType instanceof GraphQLEnumType;
                 })
                 .map(GraphQLFieldDefinition::getName)

@@ -60,7 +60,7 @@ public class AgentsApplication {
             }
             String requested = args[0];
             AgentCommand command = ordered.stream()
-                    .filter(c -> c.name().equals(requested))
+                    .filter(candidate -> candidate.name().equals(requested))
                     .findFirst()
                     .orElse(null);
             if (command == null) {
