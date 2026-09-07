@@ -37,7 +37,16 @@ public class ApprovalGate {
         System.out.print("Execute this mutation? [y/N] ");
         String answer = input.hasNextLine() ? input.nextLine().strip() : "";
         boolean approved = answer.equalsIgnoreCase("y") || answer.equalsIgnoreCase("yes");
-        System.out.println(approved ? "  approved by the human." : "  DENIED by the human.");
+        if (approved) {
+            System.out.println("  approved by the human.");
+        } else if (answer.isEmpty()) {
+            // Anything other than yes declines, and a blank line is the default. Saying
+            // which one happened matters: a newline left over from an earlier prompt
+            // reads exactly like a deliberate Enter, and the run looks refused.
+            System.out.println("  no answer given, so the write was declined.");
+        } else {
+            System.out.println("  DENIED by the human.");
+        }
         return approved;
     }
 }
