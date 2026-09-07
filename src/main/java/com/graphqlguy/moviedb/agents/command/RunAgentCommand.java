@@ -93,8 +93,8 @@ public class RunAgentCommand implements AgentCommand {
         }
 
         System.out.println("meters: " + registry.getMeters().stream()
-                .map(m -> m.getId().getName() + m.getId().getTags() + "="
-                        + ((Counter) m).count())
+                .map(meter -> meter.getId().getName() + meter.getId().getTags() + "="
+                        + ((Counter) meter).count())
                 .sorted().toList());
     }
 }
