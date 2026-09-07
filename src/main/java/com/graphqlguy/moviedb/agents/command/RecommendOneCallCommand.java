@@ -41,7 +41,7 @@ public class RecommendOneCallCommand implements AgentCommand {
 
     @Override
     public String summary() {
-        return "one call, tools AND format together; the failure this class is about";
+        return "one call demanding tools and typed output at once; usually invents the facts";
     }
 
     @Override
