@@ -20,6 +20,9 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.toolsearch.ToolIndex;
 import org.springframework.ai.tool.toolsearch.index.lucene.LuceneToolIndex;
 import org.springframework.ai.tool.toolsearch.index.regex.RegexToolIndex;
+import org.springframework.ai.tool.toolsearch.index.vectorstore.VectorToolIndex;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
@@ -40,10 +43,27 @@ public class SpringAgentCommand implements AgentCommand {
             a name is never an id. Before any write, first call the read tools
             to obtain every id the write needs.""";
 
-    private final ObjectProvider<ChatModel> chatModels;
+    /**
+     * Added to the system prompt only when tool search is on. The advisor already
+     * appends one sentence of its own saying that {@code toolSearchTool} exists, and a
+     * small model reads that sentence and still answers "the available tools do not
+     * include..." after a single search. These three rules make the search insistent.
+     */
+    protected static final String SEARCH_RULES = """
 
-    public SpringAgentCommand(ObjectProvider<ChatModel> chatModels) {
+            Most of the catalog is hidden until you search for it. When you cannot see
+            a tool for what was asked, call toolSearchTool with the words of the
+            request. If the tools it returns fit badly, search again with different
+            words, one search per missing step. Report that something is impossible
+            only after two searches have come back with nothing usable.""";
+
+    private final ObjectProvider<ChatModel> chatModels;
+    private final ObjectProvider<EmbeddingModel> embeddingModels;
+
+    public SpringAgentCommand(ObjectProvider<ChatModel> chatModels,
+                              ObjectProvider<EmbeddingModel> embeddingModels) {
         this.chatModels = chatModels;
+        this.embeddingModels = embeddingModels;
     }
 
     @Override
@@ -110,7 +130,7 @@ public class SpringAgentCommand implements AgentCommand {
         String turn = task;
         while (!turn.isBlank()) {
             var spec = client.prompt()
-                    .system(SYSTEM)
+                    .system(toolSearch ? SYSTEM + SEARCH_RULES : SYSTEM)
                     .user(turn)
                     // tools(Object...) replaces toolCallbacks(), deprecated in Spring AI 2.0
                     .tools(callbacks.toArray())
@@ -125,7 +145,7 @@ public class SpringAgentCommand implements AgentCommand {
             // Exactly one tool advisor may sit in the chain, and it owns the loop, so
             // whichever one this run uses is also where the ceiling has to go.
             if (toolSearch) {
-                ToolIndex index = "lucene".equals(indexType) ? new LuceneToolIndex() : new RegexToolIndex();
+                ToolIndex index = indexFor(indexType);
                 spec = spec.advisors(ToolSearchToolCallingAdvisor.builder()
                         .toolIndex(index)
                         .maxResults(5)
@@ -157,5 +177,26 @@ public class SpringAgentCommand implements AgentCommand {
             turn = context.console().hasNextLine() ? context.console().nextLine().strip() : "";
             System.out.println();
         }
+    }
+
+    /**
+     * The three indexes the advisor can rank with. The vector index needs an embedding
+     * model, so an unreachable Ollama makes it unavailable, and this reports that. A
+     * silent fall back to regex would leave the run measuring the wrong backend.
+     */
+    private ToolIndex indexFor(String indexType) {
+        return switch (indexType) {
+            case "lucene" -> new LuceneToolIndex();
+            case "vector" -> {
+                EmbeddingModel embeddings = embeddingModels.getIfAvailable();
+                if (embeddings == null) {
+                    throw new IllegalStateException("agents.tool-search-index is vector, "
+                            + "which needs an embedding model; is Ollama running with "
+                            + "the model named by spring.ai.ollama.embedding.options.model?");
+                }
+                yield new VectorToolIndex(SimpleVectorStore.builder(embeddings).build());
+            }
+            default -> new RegexToolIndex();
+        };
     }
 }

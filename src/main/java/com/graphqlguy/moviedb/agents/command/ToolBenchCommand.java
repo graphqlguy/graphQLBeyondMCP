@@ -43,7 +43,7 @@ import java.util.Set;
 @Component
 public class ToolBenchCommand implements AgentCommand {
 
-    private static final int TOP_K = 5;
+    private static final int DEFAULT_TOP_K = 5;
 
     private final ObjectProvider<EmbeddingModel> embeddingModels;
 
@@ -67,7 +67,14 @@ public class ToolBenchCommand implements AgentCommand {
     }
 
     @Override
+    public String prompt() {
+        return "definitions returned per search (blank for " + DEFAULT_TOP_K + ")";
+    }
+
+    @Override
     public void run(List<String> args, CommandContext context) throws Exception {
+        int topK = args.isEmpty() || args.get(0).isBlank()
+                ? DEFAULT_TOP_K : Integer.parseInt(args.get(0));
         List<Query> queries = loadQueries();
         String role = context.role();
         List<OperationTool> tools = context.tools(role);
@@ -84,11 +91,11 @@ public class ToolBenchCommand implements AgentCommand {
         System.out.println("catalog  : " + tools.size() + " tools, " + catalogTokens
                 + " tokens if every definition is advertised up front");
         System.out.println("overhead : " + overhead + " tokens tool search adds to every request");
-        System.out.println("top-k    : " + TOP_K + " definitions returned per search");
+        System.out.println("top-k    : " + topK + " definitions returned per search");
         System.out.println();
         System.out.println("One search per query, no agent and no second attempt. Each cell is the");
         System.out.println("tool-definition tokens that search would put in the request, and how many");
-        System.out.println("of the tools the task needs came back in those " + TOP_K + " results.");
+        System.out.println("of the tools the task needs came back in those " + topK + " results.");
         System.out.println();
 
         Map<String, ToolIndex> indexes = new LinkedHashMap<>();
@@ -117,7 +124,7 @@ public class ToolBenchCommand implements AgentCommand {
             System.out.printf("%-50s %8d", trim(query.text(), 50), catalogTokens);
             for (Map.Entry<String, ToolIndex> entry : indexes.entrySet()) {
                 List<ToolReference> hits = entry.getValue()
-                        .search(new ToolSearchRequest(entry.getKey(), query.text(), TOP_K, null))
+                        .search(new ToolSearchRequest(entry.getKey(), query.text(), topK, null))
                         .toolReferences();
                 Set<String> found = new LinkedHashSet<>();
                 int tokens = overhead;
@@ -151,7 +158,7 @@ public class ToolBenchCommand implements AgentCommand {
                 .getResource("classpath:/DEFAULT_SYSTEM_PROMPT_SUFFIX.md")
                 .getContentAsString(StandardCharsets.UTF_8);
         ToolCallback searchTool = MethodToolCallbackProvider.builder()
-                .toolObjects(new ToolSearchTool(new RegexToolIndex(), TOP_K))
+                .toolObjects(new ToolSearchTool(new RegexToolIndex(), DEFAULT_TOP_K))
                 .build().getToolCallbacks()[0];
         ToolDefinition definition = searchTool.getToolDefinition();
         return encoding.countTokens(suffix) + encoding.countTokens(
