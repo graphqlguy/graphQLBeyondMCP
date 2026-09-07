@@ -2,8 +2,12 @@
 # ask, a tab, then every tool the agent needs to answer it. A task that needs
 # three tools is the interesting case: an index that surfaces two of them leaves
 # the agent stuck, however few tokens it saved.
-add matrix to my watchlist	search	myWatchLists	addWatchListItem
+#
+# Every query must be answerable from the seeded catalog. An earlier version asked
+# who directed Blade Runner, a film missing from every catalogue here, so every backend
+# scored badly for a reason that had nothing to do with retrieval.
+add The Matrix to my To watch this weekend list	search	myWatchLists	addWatchListItem
 what is the plot of The Matrix	search	movie
 which of my lists has the most items	myWatchLists
-mark the first item on my weekend list as watched	myWatchLists	watchList	markWatchListItemWatched
-who directed Blade Runner	search	person
+what is in my To watch this weekend list	myWatchLists	watchList
+who directed Inception	search	person
