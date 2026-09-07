@@ -15,6 +15,9 @@
 	<description>Companion for the GraphQL for AI Agents course, Java edition: agents built against the Movie Database GraphQL service</description>
 
 	<properties>
+		<!-- Which JUnit tags the build runs. The scenario profile swaps them. -->
+		<test.groups></test.groups>
+		<test.excludedGroups>scenario</test.excludedGroups>
 		<java.version>21</java.version>
 		<langchain4j.version>1.19.0</langchain4j.version>
 		<!-- Pinned explicitly: the Maven release tag currently points at a 1.9.0 beta,
@@ -123,6 +126,17 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Scenario tests need Ollama and the Movie Database service, and take tens
+					     of seconds each, so the ordinary build leaves them out. The scenario
+					     profile below turns them on: mvn clean test -Pscenario -->
+					<groups>${test.groups}</groups>
+					<excludedGroups>${test.excludedGroups}</excludedGroups>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
@@ -155,6 +169,15 @@
 					<scope>runtime</scope>
 				</dependency>
 			</dependencies>
+		</profile>
+		<!-- mvn clean test -Pscenario runs the scenario tests, which need Ollama on
+		     11434 and the Movie Database service on 8081, and skips everything else. -->
+		<profile>
+			<id>scenario</id>
+			<properties>
+				<test.groups>scenario</test.groups>
+				<test.excludedGroups></test.excludedGroups>
+			</properties>
 		</profile>
 	</profiles>
 
