@@ -6,6 +6,7 @@ import com.knuddels.jtokkit.api.EncodingType;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
@@ -94,7 +95,7 @@ public class ToolCatalogGenerator {
             if (field.getArguments().size() == 1) {
                 GraphQLArgument only = field.getArguments().get(0);
                 if (JsonSchemaMapper.unwrapNonNull(only.getType())
-                        instanceof graphql.schema.GraphQLInputObjectType) {
+                        instanceof GraphQLInputObjectType) {
                     singleObjectArgument = only.getName();
                 }
             }

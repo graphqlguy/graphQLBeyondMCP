@@ -78,8 +78,8 @@ public class AgentRunner {
                 if (!conversation.isEmpty()
                         && conversation.get(conversation.size() - 1)
                                 instanceof ToolResponseMessage toolResponses) {
-                    toolResponses.getResponses().forEach(tr -> {
-                        String data = tr.responseData();
+                    toolResponses.getResponses().forEach(toolResponse -> {
+                        String data = toolResponse.responseData();
                         System.out.println("  result: " + (data.length() > 220
                                 ? data.substring(0, 220) + "..." : data));
                     });
