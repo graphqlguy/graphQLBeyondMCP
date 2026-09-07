@@ -26,7 +26,7 @@ class JsonSchemaMapperTest {
     }
 
     @Test
-    void enumsBecomeClosedValueLists() {
+    void enumsShouldBecomeClosedValueLists() {
         var schema = schema("""
                 type Query { q(g: Genre!): String }
                 enum Genre { DRAMA COMEDY HORROR }
@@ -40,7 +40,7 @@ class JsonSchemaMapperTest {
     }
 
     @Test
-    void nonNullMovesToTheParentsRequiredList() {
+    void nonNullShouldMoveToTheParentsRequiredList() {
         var schema = schema("""
                 type Query { q(in: In!): String }
                 input In { must: String! may: String }
@@ -53,7 +53,7 @@ class JsonSchemaMapperTest {
     }
 
     @Test
-    void idsTravelAsStringsAndListsAsArrays() {
+    void idsShouldTravelAsStringsAndListsAsArrays() {
         var schema = schema("type Query { q(ids: [ID!]!): String }");
         var argType = (graphql.schema.GraphQLInputType)
                 schema.getQueryType().getFieldDefinition("q").getArgument("ids").getType();
