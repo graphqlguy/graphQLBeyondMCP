@@ -62,7 +62,7 @@ class GraphQlToolCallbackTest {
     }
 
     @Test
-    void aDeniedWriteAnswersTheModelWithoutTouchingTheServer() {
+    void aDeniedWriteShouldAnswerTheModelWithoutTouchingTheServer() {
         // The reader is never used: this gate refuses before it would read anything.
         ApprovalGate denyEverything = new ApprovalGate(new Scanner(System.in)) {
             @Override
@@ -80,7 +80,7 @@ class GraphQlToolCallbackTest {
     }
 
     @Test
-    void theBudgetThrowsAnExceptionOnTheCallPastItsCeiling() {
+    void theBudgetShouldThrowAnExceptionOnTheCallPastItsCeiling() {
         RunBudget budget = new RunBudget(8, 2);
         var callback = new GraphQlToolCallback(writeTool, endpoint,
                 AuthSession.anonymous(), null, budget);
@@ -94,7 +94,7 @@ class GraphQlToolCallbackTest {
     }
 
     @Test
-    void flattenedSingleInputArgumentsAreWrappedBeforeTheWire() {
+    void flattenedSingleInputArgumentsShouldBeWrappedBeforeTheWire() {
         var callback = new GraphQlToolCallback(writeTool, endpoint,
                 AuthSession.anonymous(), null, null);
 

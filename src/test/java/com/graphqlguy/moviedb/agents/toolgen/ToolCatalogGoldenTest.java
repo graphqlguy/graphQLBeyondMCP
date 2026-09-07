@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.fail;
 class ToolCatalogGoldenTest {
 
     @Test
-    void generatedCatalogMatchesTheCommittedGolden() throws Exception {
+    void theGeneratedCatalogShouldMatchTheCommittedGolden() throws Exception {
         var schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(
                 new SchemaParser().parse(Files.readString(
                         Path.of("src/main/resources/schema-snapshot.graphqls"))));
@@ -42,7 +42,7 @@ class ToolCatalogGoldenTest {
     }
 
     @Test
-    void rolesNarrowTheCatalog() throws Exception {
+    void rolesShouldNarrowTheCatalog() throws Exception {
         var schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(
                 new SchemaParser().parse(Files.readString(
                         Path.of("src/main/resources/schema-snapshot.graphqls"))));
