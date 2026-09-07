@@ -30,11 +30,13 @@ agents:
   # Tool search, off by default so every earlier class's run
   # reproduces unchanged. Set it to true, rebuild, and the catalog goes to Spring
   # AI's ToolSearchToolCallingAdvisor instead of being advertised in full.
-  # The index decides how the model finds a tool by name and description.
-  # regex, the framework's own default, matches substrings and therefore reads
-  # inside names like addWatchListItem; lucene scores with BM25 but treats each
-  # such name as a single token. Class 7 measures the difference.
-  tool-search: true
+  # The index decides how the model finds a tool by name and description. Three
+  # values work: regex, the framework's own default, matches substrings and
+  # therefore reads inside names like addWatchListItem; lucene scores with BM25
+  # but treats each such name as a single token; vector embeds names and
+  # descriptions with the model named below, so it matches on meaning and needs
+  # Ollama to be reachable. Class 7 measures the difference.
+  tool-search: false
   tool-search-index: regex
 
 spring.ai.ollama.base-url: http://localhost:11434
