@@ -107,7 +107,7 @@ public class ToolLiveBenchCommand implements AgentCommand {
         int firstLabel = args.size() > 1 && args.get(1).matches("\\d+") ? 2 : 1;
         List<String> wanted = args.size() > firstLabel ? args.subList(firstLabel, args.size()) : List.of();
         List<Column> columns = wanted.isEmpty() ? COLUMNS
-                : COLUMNS.stream().filter(c -> wanted.contains(c.label())).toList();
+                : COLUMNS.stream().filter(column -> wanted.contains(column.label())).toList();
         if (columns.isEmpty()) {
             System.out.println("No column matched " + wanted + "; the names are "
                     + COLUMNS.stream().map(Column::label).toList());
@@ -153,7 +153,7 @@ public class ToolLiveBenchCommand implements AgentCommand {
                             .options(OllamaChatOptions.builder()
                                     .model(context.modelName())
                                     .numPredict(MAX_GENERATED_TOKENS))
-                            .advisors(a -> a.param(ChatMemory.CONVERSATION_ID,
+                            .advisors(advisorParams -> advisorParams.param(ChatMemory.CONVERSATION_ID,
                                     backend + "-" + query.text().hashCode() + "-" + run));
                     ToolIndex index = indexFor(column.index());
                     spec = index == null

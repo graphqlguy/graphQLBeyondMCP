@@ -83,7 +83,7 @@ public class SpringStreamCommand implements AgentCommand {
                     .tools(callbacks.toArray())
                     .options(OllamaChatOptions.builder().model(context.modelName()))
                     .advisors(MessageChatMemoryAdvisor.builder(memory).build())
-                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+                    .advisors(advisorParams -> advisorParams.param(ChatMemory.CONVERSATION_ID, conversationId))
                     .stream()
                     .content()                 // Flux<String>: the answer, token by token
                     .doOnNext(System.out::print)

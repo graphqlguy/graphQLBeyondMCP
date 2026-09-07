@@ -136,7 +136,7 @@ public class SpringAgentCommand implements AgentCommand {
                     .tools(callbacks.toArray())
                     .options(OllamaChatOptions.builder().model(context.modelName()))
                     .advisors(MessageChatMemoryAdvisor.builder(memory).build())
-                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId));
+                    .advisors(advisorParams -> advisorParams.param(ChatMemory.CONVERSATION_ID, conversationId));
 
             // Tool search, off unless asked for. Spring AI's name for sending tool
             // definitions on demand instead of all of them up front. The catalog is still
