@@ -42,7 +42,7 @@ agents:
 spring.ai.ollama.base-url: http://localhost:11434
 # The embedding model the tool-search benchmark uses for its vector index.
 # Pull it once with: ollama pull nomic-embed-text
-spring.ai.ollama.embedding.options.model: nomic-embed-text
+spring.ai.ollama.embedding.model: nomic-embed-text
 
 logging:
   level:
