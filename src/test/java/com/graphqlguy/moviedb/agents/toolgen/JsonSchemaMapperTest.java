@@ -1,5 +1,8 @@
 package com.graphqlguy.moviedb.agents.toolgen;
 
+import graphql.schema.GraphQLArgument;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.UnExecutableSchemaGenerator;
@@ -11,54 +14,68 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * The translation rules of Class 2, pinned as executable facts. Each test names
- * one rule; if a refactor bends a rule, the failure message says which promise
- * to the model broke.
+ * The translation rules of Class 2, pinned as executable facts. Each test names one
+ * rule, so a refactor that bends a rule fails with the promise it broke.
+ * <p>
+ * Every schema below is a small slice of the Movie Database rather than a made-up
+ * one, so the rule under test is visible against a field the course actually
+ * generates a tool from.
  */
-@SuppressWarnings("unchecked")
 class JsonSchemaMapperTest {
 
     private final JsonSchemaMapper mapper = new JsonSchemaMapper();
 
-    private GraphQLSchema schema(String sdl) {
-        return UnExecutableSchemaGenerator.makeUnExecutableSchema(
-                new SchemaParser().parse(sdl));
-    }
-
     @Test
     void enumsShouldBecomeClosedValueLists() {
-        var schema = schema("""
-                type Query { q(g: Genre!): String }
+        Map<String, Object> jsonSchema = argumentSchema("""
+                type Query { movies(genre: Genre!): [Movie!]! }
                 enum Genre { DRAMA COMEDY HORROR }
-                """);
-        var argType = (graphql.schema.GraphQLInputType)
-                schema.getQueryType().getFieldDefinition("q").getArgument("g").getType();
-        Map<String, Object> json = mapper.toJsonSchema(argType);
-        assertThat(json.get("type")).isEqualTo("string");
-        assertThat((List<Object>) json.get("enum"))
-                .containsExactly("DRAMA", "COMEDY", "HORROR");
+                type Movie { id: ID! }
+                """, "movies", "genre");
+
+        assertThat(jsonSchema.get("type")).isEqualTo("string");
+        assertThat(stringList(jsonSchema, "enum")).containsExactly("DRAMA", "COMEDY", "HORROR");
     }
 
     @Test
     void nonNullShouldMoveToTheParentsRequiredList() {
-        var schema = schema("""
-                type Query { q(in: In!): String }
-                input In { must: String! may: String }
-                """);
-        var argType = (graphql.schema.GraphQLInputType)
-                schema.getQueryType().getFieldDefinition("q").getArgument("in").getType();
-        Map<String, Object> json = mapper.toJsonSchema(argType);
-        assertThat((List<Object>) json.get("required")).containsExactly("must");
-        assertThat(json.get("additionalProperties")).isEqualTo(false);
+        Map<String, Object> jsonSchema = argumentSchema("""
+                type Query { watchList(input: AddWatchListItemInput!): String }
+                input AddWatchListItemInput { watchListId: ID! userNotes: String }
+                """, "watchList", "input");
+
+        assertThat(stringList(jsonSchema, "required")).containsExactly("watchListId");
+        assertThat(jsonSchema.get("additionalProperties")).isEqualTo(false);
     }
 
     @Test
     void idsShouldTravelAsStringsAndListsAsArrays() {
-        var schema = schema("type Query { q(ids: [ID!]!): String }");
-        var argType = (graphql.schema.GraphQLInputType)
-                schema.getQueryType().getFieldDefinition("q").getArgument("ids").getType();
-        Map<String, Object> json = mapper.toJsonSchema(argType);
-        assertThat(json.get("type")).isEqualTo("array");
-        assertThat(((Map<?, ?>) json.get("items")).get("type")).isEqualTo("string");
+        Map<String, Object> jsonSchema = argumentSchema(
+                "type Query { moviesByIds(ids: [ID!]!): String }", "moviesByIds", "ids");
+
+        assertThat(jsonSchema.get("type")).isEqualTo("array");
+        assertThat(itemSchema(jsonSchema).get("type")).isEqualTo("string");
+    }
+
+    /** Parses the SDL, finds one argument of one query field, and maps its type. */
+    private Map<String, Object> argumentSchema(String sdl, String fieldName, String argumentName) {
+        GraphQLSchema schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(
+                new SchemaParser().parse(sdl));
+        GraphQLObjectType queryType = schema.getQueryType();
+        GraphQLFieldDefinition field = queryType.getFieldDefinition(fieldName);
+        GraphQLArgument argument = field.getArgument(argumentName);
+        return mapper.toJsonSchema(argument.getType());
+    }
+
+    /** JSON Schema keeps its lists untyped, so the cast lives here and nowhere else. */
+    @SuppressWarnings("unchecked")
+    private static List<String> stringList(Map<String, Object> jsonSchema, String key) {
+        return (List<String>) jsonSchema.get(key);
+    }
+
+    /** The schema an array's entries follow, under the "items" key. */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> itemSchema(Map<String, Object> jsonSchema) {
+        return (Map<String, Object>) jsonSchema.get("items");
     }
 }

@@ -34,11 +34,22 @@ class GraphQlToolCallbackTest {
     private String endpoint;
     private final AtomicReference<String> lastBody = new AtomicReference<>();
 
-    private final OperationTool writeTool = new OperationTool(
-            "addWatchListItem", "adds an item",
+    /**
+     * The one write in the catalog, as the generator would produce it. The last two
+     * components carry the behaviour under test: {@code mutation} sends it through the
+     * approval gate, and {@code singleObjectArgument} names the argument the tolerant
+     * unwrap wraps a flattened payload into.
+     */
+    private static final OperationTool ADD_WATCH_LIST_ITEM = new OperationTool(
+            "addWatchListItem",
+            "adds an item to one of the caller's watch lists",
             Map.of("type", "object"),
-            "mutation Tool_addWatchListItem($input: AddWatchListItemInput!) { addWatchListItem(input: $input) { id } }",
-            List.of(), 0, true, "input");
+            "mutation Tool_addWatchListItem($input: AddWatchListItemInput!)"
+                    + " { addWatchListItem(input: $input) { id } }",
+            List.of(),      // roles: every role may see it in this test
+            0,              // token count: unused here
+            true,           // mutation, so the approval gate applies
+            "input");       // the lone input-object argument
 
     @BeforeEach
     void startStub() throws Exception {
@@ -63,14 +74,8 @@ class GraphQlToolCallbackTest {
 
     @Test
     void aDeniedWriteShouldAnswerTheModelWithoutTouchingTheServer() {
-        // The reader is never used: this gate refuses before it would read anything.
-        ApprovalGate denyEverything = new ApprovalGate(new Scanner(System.in)) {
-            @Override
-            public boolean approve(String tool, String operation, String args) {
-                return false;
-            }
-        };
-        var callback = new GraphQlToolCallback(writeTool, endpoint,
+        ApprovalGate denyEverything = alwaysDeny();
+        var callback = new GraphQlToolCallback(ADD_WATCH_LIST_ITEM, endpoint,
                 AuthSession.anonymous(), denyEverything, null);
 
         String result = callback.call("{\"input\":{}}");
@@ -82,7 +87,7 @@ class GraphQlToolCallbackTest {
     @Test
     void theBudgetShouldThrowAnExceptionOnTheCallPastItsCeiling() {
         RunBudget budget = new RunBudget(8, 2);
-        var callback = new GraphQlToolCallback(writeTool, endpoint,
+        var callback = new GraphQlToolCallback(ADD_WATCH_LIST_ITEM, endpoint,
                 AuthSession.anonymous(), null, budget);
 
         callback.call("{\"input\":{}}");
@@ -93,9 +98,22 @@ class GraphQlToolCallbackTest {
                 .hasMessageContaining("budget exceeded");
     }
 
+    /**
+     * A gate that refuses everything, reading from an empty source: the refusal happens
+     * before any prompt is answered, so no test ever waits on input.
+     */
+    private static ApprovalGate alwaysDeny() {
+        return new ApprovalGate(new Scanner("")) {
+            @Override
+            public boolean approve(String toolName, String operationDocument, String jsonArguments) {
+                return false;
+            }
+        };
+    }
+
     @Test
     void flattenedSingleInputArgumentsShouldBeWrappedBeforeTheWire() {
-        var callback = new GraphQlToolCallback(writeTool, endpoint,
+        var callback = new GraphQlToolCallback(ADD_WATCH_LIST_ITEM, endpoint,
                 AuthSession.anonymous(), null, null);
 
         callback.call("{\"watchListId\":\"2\",\"titleId\":\"5\"}"); // the flat shape small models send
