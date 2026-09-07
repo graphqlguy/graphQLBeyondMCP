@@ -24,9 +24,8 @@ import java.util.concurrent.CountDownLatch;
  * Everything here is explicitly experimental: the capability is switched on per
  * execution through a context flag, the deferred work only starts when a
  * subscriber attaches to the publisher, and the wire format the payloads mirror
- * is an older draft of the incremental-delivery proposal. That is the honest
- * state of @defer on the JVM as of August 2026, and seeing it run beats reading
- * about it.
+ * is an older draft of the incremental-delivery proposal. That is the state of
+ * @defer on the JVM as of August 2026.
  */
 public class DeferDemo {
 
