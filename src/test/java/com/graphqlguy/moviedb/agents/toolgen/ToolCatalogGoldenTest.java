@@ -35,7 +35,7 @@ class ToolCatalogGoldenTest {
     private final ToolCatalogGenerator generator = new ToolCatalogGenerator();
 
     @Test
-    void theGeneratedCatalogShouldMatchTheCommittedGolden() throws Exception {
+    void generatedCatalog_shouldMatchTheCommittedGolden() throws Exception {
         List<OperationTool> catalog = generateFor(null);
         String json = generator.toJson(catalog);
 
@@ -52,7 +52,7 @@ class ToolCatalogGoldenTest {
     }
 
     @Test
-    void rolesShouldNarrowTheCatalog() throws Exception {
+    void roles_shouldNarrowTheCatalog() throws Exception {
         assertThat(generateFor("support")).hasSize(TOOLS_FOR_SUPPORT);
         assertThat(generateFor("concierge")).hasSize(TOOLS_FOR_CONCIERGE);
         assertThat(generateFor("concierge").stream().filter(OperationTool::mutation))

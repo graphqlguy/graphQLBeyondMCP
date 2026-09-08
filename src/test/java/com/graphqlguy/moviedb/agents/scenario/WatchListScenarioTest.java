@@ -45,7 +45,7 @@ class WatchListScenarioTest {
     private static final String PASSWORD = "user123";
 
     @Test
-    void theAgentShouldReadTheListBeforeWritingToIt() throws Exception {
+    void agent_shouldReadTheListBeforeWritingToIt() throws Exception {
         AuthSession session = AuthSession.login(ENDPOINT, USERNAME, PASSWORD);
         RunBudget budget = new RunBudget(8, 6);
         ApprovalGate approveEverything = new ApprovalGate(new Scanner("")) {
