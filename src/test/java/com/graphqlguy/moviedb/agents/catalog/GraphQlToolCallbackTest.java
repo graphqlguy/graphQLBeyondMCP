@@ -73,7 +73,7 @@ class GraphQlToolCallbackTest {
     }
 
     @Test
-    void aDeniedWriteShouldAnswerTheModelWithoutTouchingTheServer() {
+    void aDeniedWrite_shouldAnswerTheModelWithoutTouchingTheServer() {
         ApprovalGate denyEverything = alwaysDeny();
         var callback = new GraphQlToolCallback(ADD_WATCH_LIST_ITEM, endpoint,
                 AuthSession.anonymous(), denyEverything, null);
@@ -85,7 +85,7 @@ class GraphQlToolCallbackTest {
     }
 
     @Test
-    void theBudgetShouldThrowAnExceptionOnTheCallPastItsCeiling() {
+    void budget_shouldThrowAnExceptionOnTheCallPastItsCeiling() {
         RunBudget budget = new RunBudget(8, 2);
         var callback = new GraphQlToolCallback(ADD_WATCH_LIST_ITEM, endpoint,
                 AuthSession.anonymous(), null, budget);
@@ -112,7 +112,7 @@ class GraphQlToolCallbackTest {
     }
 
     @Test
-    void flattenedSingleInputArgumentsShouldBeWrappedBeforeTheWire() {
+    void flattenedSingleInputArguments_shouldBeWrappedBeforeTheWire() {
         var callback = new GraphQlToolCallback(ADD_WATCH_LIST_ITEM, endpoint,
                 AuthSession.anonymous(), null, null);
 

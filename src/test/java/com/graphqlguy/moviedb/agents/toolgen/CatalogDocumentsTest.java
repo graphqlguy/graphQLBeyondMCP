@@ -31,7 +31,7 @@ class CatalogDocumentsTest {
     private static final Path ALLOW_LIST = Path.of("src/main/resources/tool-allowlist.txt");
 
     @Test
-    void everyGeneratedDocumentShouldValidateAgainstTheSchema() throws Exception {
+    void everyGeneratedDocument_shouldValidateAgainstTheSchema() throws Exception {
         GraphQLSchema schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(
                 new SchemaParser().parse(Files.readString(SCHEMA_SNAPSHOT)));
         List<OperationTool> catalog = new ToolCatalogGenerator()

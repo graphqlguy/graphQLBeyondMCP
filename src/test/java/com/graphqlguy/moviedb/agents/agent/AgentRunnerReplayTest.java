@@ -30,7 +30,7 @@ class AgentRunnerReplayTest {
     private final List<String> toolCallsMade = new ArrayList<>();
 
     @Test
-    void theLoopShouldExecuteTheToolAndThenReturnTheModelsAnswer() {
+    void loop_shouldExecuteTheToolAndThenReturnTheModelsAnswer() {
         ChatModel scriptedModel = replying(
                 asksFor("myWatchLists"),
                 answers("You have one watch list, To watch this weekend."));
@@ -47,7 +47,7 @@ class AgentRunnerReplayTest {
     }
 
     @Test
-    void theBudgetShouldStopALoopThatKeepsAskingForTools() {
+    void budget_shouldStopALoopThatKeepsAskingForTools() {
         ChatModel neverFinishes = replying(
                 asksFor("myWatchLists"), asksFor("myWatchLists"), asksFor("myWatchLists"),
                 asksFor("myWatchLists"), asksFor("myWatchLists"), asksFor("myWatchLists"));

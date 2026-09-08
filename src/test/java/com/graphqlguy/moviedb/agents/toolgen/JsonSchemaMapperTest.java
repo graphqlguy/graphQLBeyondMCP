@@ -26,7 +26,7 @@ class JsonSchemaMapperTest {
     private final JsonSchemaMapper mapper = new JsonSchemaMapper();
 
     @Test
-    void enumsShouldBecomeClosedValueLists() {
+    void enums_shouldBecomeClosedValueLists() {
         Map<String, Object> jsonSchema = argumentSchema("""
                 type Query { movies(genre: Genre!): [Movie!]! }
                 enum Genre { DRAMA COMEDY HORROR }
@@ -38,7 +38,7 @@ class JsonSchemaMapperTest {
     }
 
     @Test
-    void nonNullShouldMoveToTheParentsRequiredList() {
+    void nonNull_shouldMoveToTheParentsRequiredList() {
         Map<String, Object> jsonSchema = argumentSchema("""
                 type Query { watchList(input: AddWatchListItemInput!): String }
                 input AddWatchListItemInput { watchListId: ID! userNotes: String }
@@ -49,7 +49,7 @@ class JsonSchemaMapperTest {
     }
 
     @Test
-    void idsShouldTravelAsStringsAndListsAsArrays() {
+    void ids_shouldTravelAsStringsAndListsAsArrays() {
         Map<String, Object> jsonSchema = argumentSchema(
                 "type Query { moviesByIds(ids: [ID!]!): String }", "moviesByIds", "ids");
 
