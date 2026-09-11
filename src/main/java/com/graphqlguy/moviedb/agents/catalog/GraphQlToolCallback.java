@@ -42,7 +42,7 @@ public class GraphQlToolCallback implements ToolCallback {
         this.budget = budget;
     }
 
-    /** The Class 2 shape: a tool with none of the safety machinery, for direct calls. */
+    /** The Class 2 shape: a tool without the safety checks, for direct calls. */
     public static GraphQlToolCallback plain(OperationTool tool, String endpoint) {
         return new GraphQlToolCallback(tool, endpoint, AuthSession.anonymous(), null, null);
     }
