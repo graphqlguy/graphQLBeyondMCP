@@ -15,9 +15,9 @@ import java.util.Map;
 /**
  * Translates the catalog's JSON Schema maps into LangChain4j's typed schema model.
  * Spring AI accepts a JSON Schema string; LangChain4j models the same information
- * as objects (JsonObjectSchema, JsonEnumSchema, and friends). Same facts, second
- * dialect, and one more small proof that the catalog is the stable artifact while
- * frameworks are interchangeable consumers of it.
+ * as objects (JsonObjectSchema, JsonEnumSchema and similar classes). The facts are
+ * the same in a second format, which shows again that the catalog is the stable
+ * artifact and the frameworks are interchangeable consumers of it.
  */
 public class LangChainSchemaMapper {
 
