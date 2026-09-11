@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * The loop itself, driven by a scripted model. The two replies below are the shape
  * a real run produces: one asking for a tool, then one answering in text. Because
- * the replies are fixed, this test says whether our loop does the right thing with
+ * the replies are scripted, this test says whether our loop does the right thing with
  * them, and it says nothing about what any model would reply today.
  */
 class AgentRunnerReplayTest {

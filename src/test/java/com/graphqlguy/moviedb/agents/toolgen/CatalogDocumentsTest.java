@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>
  * This is the guarantee that makes an agent's mistakes cheap. An agent choosing a
  * tool and filling its typed arguments cannot produce a document the server refuses
- * to parse, because the document was fixed at generation time and checked here.
+ * to parse, because the document was written at generation time and checked here.
  */
 class CatalogDocumentsTest {
 
