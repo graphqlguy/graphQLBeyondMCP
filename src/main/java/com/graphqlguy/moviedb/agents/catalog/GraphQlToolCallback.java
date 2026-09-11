@@ -18,7 +18,7 @@ import java.util.Map;
  * The call itself is deliberately unexciting: the model's JSON arguments become
  * GraphQL variables on the persisted operation document, posted to the endpoint.
  * The model chose an operation by name and filled typed blanks; it composed
- * nothing, which is precisely the safety property the allow-list pattern buys.
+ * nothing, which is precisely the safety property the allow-list pattern provides.
  */
 public class GraphQlToolCallback implements ToolCallback {
 
