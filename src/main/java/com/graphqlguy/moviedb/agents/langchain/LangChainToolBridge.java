@@ -11,12 +11,12 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * The whole LangChain4j integration, and its size is the lesson. Each generated
+ * The whole LangChain4j integration fits in this small class. Each generated
  * tool becomes a ToolSpecification (what the model sees) paired with a
  * ToolExecutor (what runs), and the executor simply delegates to the SAME
  * GraphQlToolCallback that served Spring AI in Classes 2 and 4, so the login,
  * the approval gate, the run budget, and the persisted operations all carry
- * over without a line changing. The framework changed; the safety did not.
+ * over unchanged into the new framework.
  */
 public class LangChainToolBridge {
 
