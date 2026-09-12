@@ -4,12 +4,12 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
- * Where token counts become money, and where money becomes a metric. Every model
+ * Converts token counts into money and records the money as a metric. Every model
  * call reports its provider-side usage; this meter prices it against the
  * configured per-million-token rates and feeds the same Micrometer registry the
  * rest of a Spring service ships operational metrics through, tagged by tenant
- * and model, because an agent bill you can only see after the invoice is an
- * agent bill you cannot stop.
+ * and model. A cost that shows up only on the monthly invoice arrives too late
+ * to stop the runs that caused it.
  *
  * The prices are configuration, deliberately: local models cost zero at the
  * provider and something at the electricity meter, hosted models publish list

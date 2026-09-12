@@ -21,11 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The agent loop, driven by hand as in the schema-navigation class, with one
- * addition: the run budget has the final say. The model proposes, the tools
- * dispose, and the budget adjourns. When the ceiling is reached mid-task, the
- * loop stops with a plain statement instead of one more hopeful model call,
- * because a stuck agent's most expensive behavior is optimism.
+ * The agent loop, driven by hand as in the schema-navigation lesson, with one
+ * addition: the run budget decides when the loop ends. The model proposes tool
+ * calls, the tools run them, and the budget stops the run at its ceiling. When the
+ * ceiling is reached mid-task, the loop ends with a plain statement. A stuck agent
+ * tends to repeat the same attempt, and every extra model call costs tokens.
  */
 public class AgentRunner {
 
@@ -41,9 +41,9 @@ public class AgentRunner {
     private final ToolCallingManager toolCallingManager = ToolCallingManager.builder().build();
 
     /**
-     * The conversation survives between calls to {@link #run}, so a reply continues
-     * where the last answer stopped. A model that answers a task with a question,
-     * which small models do often, is otherwise a dead end.
+     * The conversation is kept between calls to {@link #run}, so a reply continues
+     * where the last answer stopped. Small models often answer a task with a
+     * question, and the kept conversation lets the user answer it.
      */
     private final List<Message> conversation = new ArrayList<>();
 
