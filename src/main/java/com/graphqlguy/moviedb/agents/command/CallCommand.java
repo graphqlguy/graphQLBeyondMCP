@@ -46,8 +46,8 @@ public class CallCommand implements AgentCommand {
         System.out.println("operation : " + tool.operationDocument());
         System.out.println("arguments : " + jsonArgs);
         System.out.println();
-        // plain(): no login, no gate, no budget, which is what makes this the
-        // wiring check it was in Class 2 rather than an agent run.
+        // plain() skips the login, the gate and the budget, so this command stays
+        // the wiring check from Class 2.
         System.out.println(GraphQlToolCallback.plain(tool, context.endpoint()).call(jsonArgs));
     }
 }

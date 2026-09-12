@@ -60,7 +60,7 @@ public class ToolSearchCommand implements AgentCommand {
         String role = context.role();
         List<OperationTool> tools = context.tools(role);
         // What the advisor indexes is exactly this: a tool's name and its description.
-        // The input schema, which is most of a definition's cost, is never indexed.
+        // The advisor leaves out the input schema, which is most of a definition's cost.
         List<ToolReference> references = tools.stream()
                 .map(tool -> ToolReference.builder()
                         .toolName(tool.name()).summary(tool.description()).build())

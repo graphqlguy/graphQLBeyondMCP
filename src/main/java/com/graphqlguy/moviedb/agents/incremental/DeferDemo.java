@@ -44,7 +44,7 @@ public class DeferDemo {
                 .type("Query", type -> type
                         .dataFetcher("headline", env -> "The catalog holds 12 movies.")
                         .dataFetcher("analysis", env -> {
-                            Thread.sleep(2000); // the resolver a user should never wait behind
+                            Thread.sleep(2000); // a slow resolver, so its field is deferred
                             return "Dramas dominate; ratings cluster between 8.5 and 9.3.";
                         }))
                 .build();

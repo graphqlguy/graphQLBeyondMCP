@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * A property every tool in the catalog has to hold: the operation it would send is
  * valid against the schema it was generated from. One assertion covers every tool,
- * including tools nobody has run, and it holds without a model in sight.
+ * including tools nobody has run, and the test runs without a model.
  * <p>
  * This is the guarantee that makes an agent's mistakes cheap. An agent choosing a
  * tool and filling its typed arguments cannot produce a document the server refuses

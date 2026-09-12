@@ -7,8 +7,8 @@ import java.util.List;
 
 /**
  * Class 9: graphql-java's experimental @defer, run against a self-contained schema
- * so the timestamps prove the initial payload arrives before the deferred one.
- * This one needs neither the service nor a model.
+ * so the timestamps show the initial payload arriving before the deferred one.
+ * This command runs without the Movie Database service and without a model.
  */
 @Component
 public class DeferDemoCommand implements AgentCommand {
