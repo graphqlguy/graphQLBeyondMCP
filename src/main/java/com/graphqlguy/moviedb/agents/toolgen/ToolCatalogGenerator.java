@@ -61,8 +61,8 @@ public class ToolCatalogGenerator {
             if (field.getDescription() == null || field.getDescription().isBlank()) {
                 throw new IllegalStateException(
                         "Operation '" + field.getName() + "' is on the allow-list without a schema"
-                        + " description. A tool the model cannot tell apart from its neighbours is"
-                        + " worse than no tool, so describe it in the schema or remove it from the"
+                        + " description. The model cannot tell such a tool apart from its neighbours,"
+                        + " so describe the operation in the schema or remove it from the"
                         + " allow-list.");
             }
             String description = field.getDescription().strip();
