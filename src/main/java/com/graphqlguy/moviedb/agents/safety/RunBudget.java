@@ -6,8 +6,8 @@ package com.graphqlguy.moviedb.agents.safety;
  * prompt was manipulated, the loop stops when the numbers say stop.
  * <p>
  * Two ceilings cover the two ways runs go bad: too many model calls (the agent
- * loops on a problem it cannot solve) and too many tool calls (the agent thrashes
- * against the API). Spring AI's own ToolCallingManager enforces a related pair
+ * loops on a problem it cannot solve) and too many tool calls (the agent keeps
+ * calling the API without making progress). Spring AI's own ToolCallingManager enforces a related pair
  * (40 calls per tool, 150 in total per turn, added in 2.0.1); the run budget here is
  * deliberately far tighter, because a Movie Database concierge that needs ten
  * model calls has already gone wrong.

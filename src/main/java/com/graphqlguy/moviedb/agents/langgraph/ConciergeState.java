@@ -18,10 +18,10 @@ import java.util.Optional;
  * how a conversation grows), while "rounds" is a plain value the agent node
  * overwrites as its loop counter.
  *
- * Making state explicit is the framework's entire proposition. The hand loop of
+ * LangGraph4j is built around explicit state. The hand loop of
  * Class 4 and the AiServices proxy of Class 5 both HAVE state; here it is a value
- * you can inspect, checkpoint, and edit between steps, which is what makes
- * interrupts and time-travel possible instead of clever.
+ * you can inspect, checkpoint, and edit between steps. That is what makes
+ * interrupts and time-travel possible.
  */
 public class ConciergeState extends AgentState {
 
