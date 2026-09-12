@@ -54,7 +54,7 @@ public class RecommendCommand implements AgentCommand {
         ChatModel model = chatModels.getIfAvailable();
         if (ask.isBlank() || model == null) {
             System.out.println(ask.isBlank() ? "recommend needs a request"
-                    : "No chat model available; is Ollama running?");
+                    : "No chat model configured.");
             return;
         }
         RunBudget budget = new RunBudget(8, 6);
@@ -103,7 +103,7 @@ public class RecommendCommand implements AgentCommand {
                 .call()
                 .entity(new ParameterizedTypeReference<List<MovieRecommendation>>() {});
         // entity() is nullable: a model that answers with unparseable text yields
-        // null here, and an empty list is the honest reading of that.
+        // null here, and the command reports that as an empty list.
         answer = answer == null ? List.of() : answer;
 
         for (MovieRecommendation rec : answer) {
