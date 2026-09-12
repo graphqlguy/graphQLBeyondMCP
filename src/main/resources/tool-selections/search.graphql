@@ -3,8 +3,8 @@
 # First, the union: `search` returns SearchResult = Movie | Person | TvShow, and a
 # union field is invalid without a selection, so the generated document fails at
 # the server with SubselectionRequired. Choosing fields across union members needs
-# inline fragments and a judgement about which members matter, which is a decision
-# a generator should decline to make.
+# inline fragments and a judgement about which members matter, and a person makes
+# that judgement when writing this file.
 #
 # Second, the shape: MovieCard is the contract for what a "movie, briefly" means in
 # this application, and Class 8's Java record mirrors it field for field. The same

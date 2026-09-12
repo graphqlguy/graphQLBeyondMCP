@@ -55,7 +55,7 @@ public class RecommendOneCallCommand implements AgentCommand {
         ChatModel model = chatModels.getIfAvailable();
         if (ask.isBlank() || model == null) {
             System.out.println(ask.isBlank() ? "recommend-one needs a request"
-                    : "No chat model available; is Ollama running?");
+                    : "No chat model configured.");
             return;
         }
         RunBudget budget = new RunBudget(8, 6);

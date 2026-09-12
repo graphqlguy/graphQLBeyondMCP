@@ -55,7 +55,7 @@ public class SpringStreamCommand implements AgentCommand {
         ChatModel springModel = chatModels.getIfAvailable();
         if (task.isBlank() || springModel == null) {
             System.out.println(task.isBlank() ? "a task is needed"
-                    : "No chat model available; is Ollama running?");
+                    : "No chat model configured.");
             return;
         }
         String role = context.role();

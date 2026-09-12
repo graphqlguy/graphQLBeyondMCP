@@ -3,11 +3,11 @@ package com.graphqlguy.moviedb.agents.langchain;
 import dev.langchain4j.service.SystemMessage;
 
 /**
- * LangChain4j's signature idea: the agent is an interface, and the framework
+ * LangChain4j's main idea: the agent is an interface, and the framework
  * synthesizes the implementation. Calling chat() runs the whole loop (model,
  * tools, memory) behind an ordinary Java method call. Compare this with the
- * hand-driven loop of Class 4 and Spring AI's ChatClient in Class 7: three
- * programming models, one identical tool layer underneath all of them.
+ * hand-driven loop of Class 4 and Spring AI's ChatClient in Class 7. All three
+ * run on the same tool layer.
  */
 public interface MovieConcierge {
 

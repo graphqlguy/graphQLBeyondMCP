@@ -78,9 +78,9 @@ public class Lc4jAgentCommand implements AgentCommand {
         System.out.println();
 
         // The framework already keeps the history: MessageWindowChatMemory above is
-        // what makes a second call continue the first. Asking for a reply is all
-        // this command has to add, and a task the model answers with a question is
-        // no longer a dead end.
+        // what makes a second call continue the first. This command only has to ask
+        // the user for a reply, so when the model answers a task with a question, the
+        // user can answer it and the run continues.
         String turn = task;
         while (!turn.isBlank()) {
             String answer = concierge.chat(turn);
