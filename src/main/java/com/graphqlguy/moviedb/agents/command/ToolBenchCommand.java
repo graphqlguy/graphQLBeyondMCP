@@ -93,7 +93,7 @@ public class ToolBenchCommand implements AgentCommand {
         System.out.println("overhead : " + overhead + " tokens tool search adds to every request");
         System.out.println("top-k    : " + topK + " definitions returned per search");
         System.out.println();
-        System.out.println("One search per query, no agent and no second attempt. Each cell is the");
+        System.out.println("One search per query, without an agent or a second attempt. Each cell is the");
         System.out.println("tool-definition tokens that search would put in the request, and how many");
         System.out.println("of the tools the task needs came back in those " + topK + " results.");
         System.out.println();

@@ -81,7 +81,7 @@ class GraphQlToolCallbackTest {
         String result = callback.call("{\"input\":{}}");
 
         assertThat(result).contains("denied").contains("Do not retry");
-        assertThat(lastBody.get()).isNull(); // the request never left the building
+        assertThat(lastBody.get()).isNull(); // the stub server received no request
     }
 
     @Test

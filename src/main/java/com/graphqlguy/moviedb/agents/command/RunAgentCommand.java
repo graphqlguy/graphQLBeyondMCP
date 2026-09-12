@@ -55,7 +55,7 @@ public class RunAgentCommand implements AgentCommand {
         if (task.isBlank() || chatModel == null) {
             System.out.println(task.isBlank()
                     ? "agent needs a task, e.g.: agent add movie 1 to my watchlist"
-                    : "No chat model available; is Ollama running?");
+                    : "No chat model configured.");
             return;
         }
         String role = context.role();
@@ -81,7 +81,7 @@ public class RunAgentCommand implements AgentCommand {
 
         // One runner for the whole exchange: a model that answers with a question
         // gets an answer back, and both the budget and the meter keep counting
-        // across the turns, because the cost of a conversation is the whole of it.
+        // across the turns, because a conversation's cost includes every turn.
         AgentRunner runner = new AgentRunner(chatModel, context.modelName());
         String turn = task;
         while (!turn.isBlank()) {

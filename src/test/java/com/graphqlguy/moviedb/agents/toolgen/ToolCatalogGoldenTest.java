@@ -15,10 +15,10 @@ import static org.assertj.core.api.Assertions.fail;
 /**
  * The drift gate Class 2 promised, as a test. The catalog is regenerated from
  * the committed schema snapshot and compared byte for byte against the golden
- * copy; when the schema (or the generator) changes, this test fails, and the
- * fix is a deliberate regeneration reviewed in the same pull request as the
- * change that caused it. "The schema and the catalog disagree" becomes a red
- * build a human resolves instead of a surprise an agent discovers.
+ * copy; when the schema (or the generator) changes, this test fails. The
+ * next step is a deliberate regeneration, reviewed in the same pull request as the
+ * change that caused it. A mismatch between the schema and the catalog then fails
+ * the build, where a person sees it before an agent does.
  */
 class ToolCatalogGoldenTest {
 
