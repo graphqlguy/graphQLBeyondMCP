@@ -52,7 +52,7 @@ public class RunAgentCommand implements AgentCommand {
         if (task.isBlank() || chatModel == null) {
             System.out.println(task.isBlank()
                     ? "agent needs a task, e.g.: agent add movie 1 to my watchlist"
-                    : "No chat model available; is Ollama running?");
+                    : "No chat model configured.");
             return;
         }
         String role = context.role();
