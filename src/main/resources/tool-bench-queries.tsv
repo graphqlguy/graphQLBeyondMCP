@@ -4,8 +4,8 @@
 # the agent stuck, however few tokens it saved.
 #
 # Every query must be answerable from the seeded catalog. An earlier version asked
-# who directed Blade Runner, a film missing from every catalogue here, so every backend
-# scored badly for a reason that had nothing to do with retrieval.
+# who directed Blade Runner, a film missing from every catalog here, so every backend
+# scored badly because the answer was missing from the catalog.
 add The Matrix to my To watch this weekend list	search	myWatchLists	addWatchListItem
 what is the plot of The Matrix	search	movie
 which of my lists has the most items	myWatchLists

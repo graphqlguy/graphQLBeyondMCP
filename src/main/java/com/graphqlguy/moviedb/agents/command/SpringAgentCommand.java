@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * Class 7: the same concierge with Spring AI's ChatClient owning the loop. The
- * callbacks need no bridge, because they already implement Spring AI's own
+ * callbacks work without a bridge, because they already implement Spring AI's own
  * ToolCallback interface, which is what Class 2 built them against.
  */
 @Component
@@ -92,7 +92,7 @@ public class SpringAgentCommand implements AgentCommand {
         ChatModel springModel = chatModels.getIfAvailable();
         if (task.isBlank() || springModel == null) {
             System.out.println(task.isBlank() ? "a task is needed"
-                    : "No chat model available; is Ollama running?");
+                    : "No chat model configured.");
             return;
         }
         String role = context.role();

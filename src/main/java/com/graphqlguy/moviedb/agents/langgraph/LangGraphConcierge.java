@@ -69,7 +69,7 @@ public class LangGraphConcierge {
         // Checkpointing serializes the state, and LangChain4j's message classes are
         // not java.io.Serializable, so the integration module's Jackson serializer
         // does the job; the default ObjectStream serializer fails at the first
-        // checkpoint. A worthwhile fact discovered the honest way: by failing.
+        // checkpoint. We found this when a run failed at that checkpoint.
         StateGraph<ConciergeState> graph = new StateGraph<>(ConciergeState.SCHEMA,
                 new LC4jJacksonStateSerializer<>(ConciergeState::new));
 

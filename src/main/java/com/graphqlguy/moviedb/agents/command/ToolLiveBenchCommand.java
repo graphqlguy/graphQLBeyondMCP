@@ -115,7 +115,7 @@ public class ToolLiveBenchCommand implements AgentCommand {
         }
         ChatModel model = chatModels.getIfAvailable();
         if (model == null) {
-            System.out.println("No chat model available; is Ollama running?");
+            System.out.println("No chat model configured.");
             return;
         }
         List<Query> queries = loadQueries();
